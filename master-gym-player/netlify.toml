@@ -1,3 +1,0 @@
-# Netlify configuration for Master Gym Player Frontend
-[build]
-  publish = "."
