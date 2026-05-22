@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<!-- 
+تنبيه للمطور: عند رفع الموقع على السيرفر (Online)، 
+تأكد من إضافة السطر التالي في ملف .env ليعمل الذكاء الاصطناعي:
+GEMINI_API_KEY=your_key_here
+-->
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماستر جيم - المشتركين</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js & QRCode.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    
+    
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+
+    <!-- Login/Registration Screen (Glassmorphism Auth Layout) -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <h1 class="logo">ماستر <span>جيم</span></h1>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-target="login-form">تسجيل الدخول</button>
+                <button class="tab-btn" data-target="register-form">نادينا نورت</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <div class="input-group">
+                    <label class="form-label">رقم هاتفك (المسجل به)</label>
+                    <input type="tel" id="login-phone" required placeholder="05XXXXXXXX" class="form-control">
+                </div>
+                <div class="input-group">
+                    <label class="form-label">كلمة المرور الخاصة بك</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" required class="form-control">
+                        <span class="toggle-password"
+                            onclick="togglePasswordVisibility('login-password', this)"><i class="fa-regular fa-eye"></i></span>
+                    </div>
+                    <div style="text-align: right; margin-top: 0.5rem;">
+                        <a href="#" onclick="openForgotPasswordModal(event)" style="color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 600;">نسيت كلمة المرور؟</a>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="login-submit-btn"
+                    style="width: 100%; margin-top: 1.5rem;">دخول إلى ملفي</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form">
+                <div class="input-group">
+                    <label class="form-label">الاسم الكامل رباعي</label>
+                    <input type="text" id="reg-name" required placeholder="اسمك الصريح للتعريف" class="form-control">
+                </div>
+                <div class="input-group">
+                    <label class="form-label">رقم هاتف صالح (سيستخدم للدخول)</label>
+                    <input type="tel" id="reg-phone" required placeholder="05XXXXXXXX" class="form-control">
+                </div>
+                <div class="input-group">
+                    <label class="form-label">تعيين كلمة مرور لحسابك</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="reg-password" required oninput="checkPasswordStrength(this.value)" class="form-control">
+                        <span class="toggle-password"
+                            onclick="togglePasswordVisibility('reg-password', this)"><i class="fa-regular fa-eye"></i></span>
+                    </div>
+                    <div id="password-strength-container" class="mt-1 hidden">
+                        <div class="strength-bar">
+                            <div id="strength-fill"></div>
+                        </div>
+                        <span id="strength-text" class="text-muted" style="font-size: 0.85rem;"></span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">تأكيد كلمة المرور</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="reg-password-confirm" required class="form-control">
+                        <span class="toggle-password"
+                            onclick="togglePasswordVisibility('reg-password-confirm', this)"><i class="fa-regular fa-eye"></i></span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">محل السكن (المدينة أو الحي)</label>
+                    <input type="text" id="reg-address" required placeholder="رام الله، حي..." class="form-control">
+                </div>
+                <div class="input-group">
+                    <label class="form-label">الفئة</label>
+                    <div class="segmented-control">
+                        <input type="radio" name="reg-type" id="reg-type-civilian" value="civilian" checked>
+                        <label for="reg-type-civilian"><i class="fa-solid fa-user"></i> مواطن مدني</label>
+                        
+                        <input type="radio" name="reg-type" id="reg-type-military" value="military">
+                        <label for="reg-type-military"><i class="fa-solid fa-shield-halved"></i> رجل عسكري</label>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">الجنس</label>
+                    <div class="segmented-control">
+                        <input type="radio" name="reg-gender" id="reg-gender-male" value="ذكر" checked>
+                        <label for="reg-gender-male"><i class="fa-solid fa-mars"></i> ذكر</label>
+                        
+                        <input type="radio" name="reg-gender" id="reg-gender-female" value="أنثى">
+                        <label for="reg-gender-female"><i class="fa-solid fa-venus"></i> أنثى</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="register-submit-btn" style="width: 100%;">طلب تسجيـل
+                    الانضمام</button>
+            </form>
+
+            <div id="pending-message" class="alert warning mt-2 hidden">
+                <i class="fa-solid fa-clock"></i> حسابك حالياً قيد المراجعة. نرجو منك انتظار التفعيل السريع من إدارة النادي.
+            </div>
+        </div>
+    </div>
+
+    <!-- Player App Dashboard Screen -->
+    <div id="dashboard-screen" class="screen">
+
+        <!-- Topbar -->
+        <div class="app-layout">
+            <header class="app-topbar">
+                <div class="topbar-title">لوحة <span>اللاعب</span></div>
+                
+                <div class="topbar-actions">
+                    <span id="welcome-name" style="font-weight:700;">مرحباً</span>
+                    <button class="topbar-btn" onclick="togglePlayerAiPanel()" title="المساعد الذكي" style="color: var(--success); margin-left: 8px; font-size: 1.15rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-robot"></i>
+                    </button>
+                    <div class="notifications-wrapper relative">
+                        <button class="topbar-btn" onclick="toggleNotifications()">
+                            <i class="fa-regular fa-bell"></i>
+                            <span id="global-unread-badge" class="notif-dot hidden"></span>
+                        </button>
+                        <div id="notifications-dropdown" class="notifications-dropdown hidden card" style="position:absolute; top: 45px; left: -10px; width: 340px; z-index: 1000; max-height: 400px; overflow-y:auto; padding:0;">
+                            <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap: 5px;">
+                                <h4 style="margin:0; font-size:1.1rem; white-space:nowrap;">الإشعارات</h4>
+                                <div style="display:flex; gap: 5px;">
+                                    <button class="btn btn-outline btn-sm" onclick="markAllNotificationsRead()" style="font-size:0.8rem; padding: 4px 8px;"><i class="fa-solid fa-check-double"></i> مقروء الكل</button>
+                                    <button class="btn btn-outline btn-sm" onclick="clearAllNotifications()" style="font-size:0.8rem; padding: 4px 8px; border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-trash-can"></i> مسح</button>
+                                </div>
+                            </div>
+                            <div id="notifications-list" style="display:flex; flex-direction:column; padding:0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Sidebar -->
+            <aside class="app-sidebar card">
+                <h2 class="logo" style="margin-bottom: 2.5rem;">ماستر <span>جيم</span></h2>
+                <nav class="admin-nav player-nav">
+                    <button class="nav-btn active" data-target="player-home"><i class="fa-solid fa-house"></i> الرئيسية</button>
+                    <button class="nav-btn" data-target="player-schedule"><i class="fa-solid fa-clipboard-list"></i> البرنامج التدريبي</button>
+                    <button class="nav-btn" data-target="player-progress"><i class="fa-solid fa-chart-line"></i> متتبع التطور</button>
+                    <button class="nav-btn" data-target="player-qr"><i class="fa-solid fa-id-card"></i> هويتي الرقمية</button>
+                    <button class="nav-btn" data-target="player-personal-profile"><i class="fa-solid fa-user"></i> ملفي الشخصي</button>
+                    <button class="nav-btn" id="open-ai-btn" onclick="togglePlayerAiPanel()" style="color: var(--success); text-align: right;"><i class="fa-solid fa-robot"></i> المساعد الذكي</button>
+                    <button class="nav-btn" id="logout-btn" style="color: #ff6a00; margin-top: auto;"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+                </nav>
+            </aside>
+
+            <main class="app-main">
+                
+
+                <!-- Home Section -->
+                <section id="player-home" class="admin-section active">
+                    <div class="hero-greeting mb-2 text-center">
+                        <h2
+                            style="font-size: 2.5rem; color: var(--primary); font-weight: 800; text-shadow: 0 0 25px rgba(249,115,22,0.4); margin-bottom: 0.5rem;">
+                            مرحباً بالعضلات</h2>
+                        <p class="text-muted" style="font-size: 1.1rem;">جاهز لتحطيم أرقامك القياسية اليوم في ماستر جيم؟
+                            <i class="fa-solid fa-fire" style="color: #f97316;"></i>
+                        </p>
+                    </div>
+
+                    <div class="grid-cards mt-2" style="gap: 2rem;">
+                        <!-- VIP Subscription Card -->
+                        <section class="span-full">
+                            <div class="vip-card">
+                                <div class="vip-card-bg"></div>
+                                <h3 style="position: relative; z-index: 2; margin-bottom: 1.5rem; font-size: 1.4rem;"><i class="fa-solid fa-credit-card"></i>
+                                    بطاقة العضوية والاشتراك</h3>
+                                <div id="subscription-status"
+                                    style="position: relative; z-index: 2; font-size: 1.2rem; line-height: 1.8;">
+                                    <div class="spinner" style="border-top-color: white;"></div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Phase 5 Additions: Gamification & Freeze -->
+                    <div
+                        style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; margin-top:2rem;">
+                        <!-- Points & Rewards Card -->
+                        <div class="card" style="border-top: 4px solid #eab308; display:flex; flex-direction:column; justify-content:space-between; min-height: 250px;">
+                            <div>
+                                <h3 class="mb-2" style="color: #eab308; display:flex; align-items:center; gap:0.5rem;"><i class="fa-solid fa-trophy"></i> رصيدي من النقاط</h3>
+                                <p class="text-muted" style="font-size:0.9rem; margin-bottom:1.5rem;">نقاطك الكلية التي جمعتها من الحضور المبكر، تجديد الاشتراكات، وتخفيف الوزن.</p>
+                                <div style="display:flex; justify-content:center; align-items:center; flex-direction:column; margin: 1rem 0;">
+                                    <div style="font-size: 2.8rem; font-weight:900; color:#eab308; text-shadow:0 0 20px rgba(234, 179, 8, 0.4); line-height:1;">
+                                        <span id="player-dashboard-points">0</span>
+                                    </div>
+                                    <span style="font-size: 0.95rem; color:var(--text-muted); margin-top:0.4rem; font-weight:700;">نقطة كابتن 🏆</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" onclick="document.querySelector('.player-nav .nav-btn[data-target=\'player-personal-profile\']').click();" style="border-color:#eab308; color:#eab308; width:100%;">عرض التفاصيل 📜</button>
+                        </div>
+
+                        <!-- Leaderboard -->
+                        <div class="card">
+                            <h3 class="mb-2 text-primary"><i class="fa-solid fa-trophy"></i> أبطال النادي (النقاط)</h3>
+                            <div id="leaderboard-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Freeze Subs -->
+                        <div class="card">
+                            <h3 class="mb-2"><i class="fa-regular fa-snowflake"></i> تجميد الاشتراك</h3>
+                            <p class="text-muted" style="font-size:0.9rem; margin-bottom:1rem;">هل تواجه ظرفاً طارئاً؟
+                                يمكنك طلب تجميد أيامك المتبقية ليتم ترحيلها.</p>
+                            <form id="freeze-form">
+                                <div class="input-group">
+                                    <label class="form-label">عدد أيام التجميد المقصودة (1 - 30)</label>
+                                    <input type="number" id="freeze-days" min="1" max="30" required class="form-control">
+                                </div>
+                                <div class="input-group mt-1">
+                                    <label class="form-label">السبب</label>
+                                    <input type="text" id="freeze-reason" placeholder="سفر، مرض، إلخ..." required class="form-control">
+                                </div>
+                                <button type="submit" class="btn btn-outline"
+                                    style="width:100%; border-color:#0ea5e9; color:#0ea5e9; margin-top:1rem;">إرسال طلب
+                                    التجميد</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Schedule Section -->
+                <section id="player-schedule" class="admin-section">
+                    <div class="section-header">
+                        <h2>المقررات والبرامج المخصصة</h2>
+                    </div>
+                    <section class="card widget span-full schedule-card">
+                        <h3 class="mb-2"
+                            style="color: var(--primary); border-bottom: 1px solid rgba(249, 115, 22, 0.2); padding-bottom: 1rem;">
+                            <i class="fa-solid fa-clipboard-list"></i> الجدول الرياضي والغذائي</h3>
+                        <div id="training-schedule" class="content-box"
+                            style="padding: 1rem 0; font-size: 1.1rem; line-height: 1.8;">
+                            <div class="spinner"></div>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- Body Progress Tracker Section -->
+                <section id="player-progress" class="admin-section">
+                    <div class="section-header">
+                        <h2>الإحصائيات والتطور البدني <i class="fa-solid fa-chart-line"></i></h2>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:2rem;">
+                        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--primary);">
+                            <div>
+                                <h3 class="mb-2" style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-weight-scale" style="color: var(--primary);"></i> تسجيل القياسات اليومية</h3>
+                                <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem;">سجل وزنك وطولك بانتظام لتحديث مجسمك والتمتع بنقاط التحفيز.</p>
+                                <form id="progress-form">
+                                    <div class="input-group">
+                                        <label class="form-label">الوزن الحالي (كجم)</label>
+                                        <input type="number" step="0.1" id="current-weight" required placeholder="مثال: 75.5" class="form-control" style="font-size: 1.1rem; font-weight: 700;">
+                                    </div>
+                                    <div class="input-group mt-2">
+                                        <label class="form-label">الطول الحالي (سم)</label>
+                                        <input type="number" step="1" id="current-height" required placeholder="مثال: 178" class="form-control" style="font-size: 1.1rem; font-weight: 700;">
+                                    </div>
+                                    <div class="input-group mt-2">
+                                        <label class="form-label">ملاحظات القياس (اختياري)</label>
+                                        <input type="text" id="progress-notes" placeholder="مثال: في الصباح الباكر، قبل الأكل" class="form-control">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800;">
+                                        <i class="fa-solid fa-floppy-disk"></i> حفظ القياس وتحديث المجسم
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 4px solid #10b981; background: rgba(30, 41, 59, 0.25);">
+                            <h3 class="mb-2" style="align-self: flex-start; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-user-astronaut" style="color: #10b981;"></i> مجسم الجسم التفاعلي</h3>
+                            <p class="text-muted" style="font-size: 0.9rem; align-self: flex-start; margin-bottom: 1rem;">محاكاة بصرية مبنية على مؤشر كتلة جسمك الحالي (BMI).</p>
+                            <div id="avatar-render-area" style="width: 100%; height: 250px; display: flex; justify-content: center; align-items: center; position: relative; transition: all 0.3s ease;">
+                                <!-- SVG will render here -->
+                            </div>
+                            <div id="bmi-info-box" style="width: 100%; text-align: center; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                <!-- BMI information will render here -->
+                            </div>
+                        </div>
+                        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #a855f7;">
+                            <div>
+                                <h3 class="mb-2" style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-chart-line" style="color: #a855f7;"></i> منحنى التطور البدني</h3>
+                                <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem;">رسم بياني يوضح تقلبات وزنك ومدى اقترابك من الوزن المثالي.</p>
+                                <div style="width: 100%; height: 240px; position:relative;">
+                                    <canvas id="body-progress-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Digital ID QR Section -->
+                <section id="player-qr" class="admin-section">
+                    <div class="section-header">
+                        <h2>هويتي الرقمية لتسجيل الحضور</h2>
+                    </div>
+                    <div class="card" style="text-align:center; max-width: 400px; margin: 0 auto;">
+                        <h3 class="text-muted mb-2">بطاقة الدخول للنادي</h3>
+                        <p style="margin-bottom:1.5rem; font-size:0.9rem;">مرر هذا الكود على ماسح الإدارة عند الدخول
+                            لتسجيل حضورك.</p>
+                        <div id="qr-code-img"
+                            style="background:white; padding:1.5rem; display:inline-block; border-radius:12px; margin-bottom:1rem;">
+                            <!-- QR JS will generate this -->
+                        </div>
+                        <h2 id="qr-player-name" class="text-primary mt-1"></h2>
+                        <p id="qr-player-cid" class="text-muted"></p>
+                    </div>
+                </section>
+
+                <!-- Personal Profile Section -->
+                <section id="player-personal-profile" class="admin-section">
+                    <div class="section-header">
+                        <h2>الملف الشخصي <i class="fa-solid fa-user"></i></h2>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                        <!-- Top Banner Card (Visual Profile Summary) -->
+                        <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255,255,255,0.08); padding: 1.5rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; text-align: right;">
+                            <div style="display: flex; align-items: center; gap: 1.2rem;">
+                                <div style="background: linear-gradient(135deg, var(--primary) 0%, #ea580c 100%); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: white; box-shadow: 0 8px 24px rgba(249, 115, 22, 0.25);">
+                                    <i class="fa-solid fa-user-tie"></i>
+                                </div>
+                                <div style="text-align: right;">
+                                    <h2 id="profile-banner-name" style="margin: 0; color: white; font-size: 1.6rem; font-weight: 800;">جاري التحميل...</h2>
+                                    <p id="profile-banner-club-id" style="margin: 0.2rem 0 0 0; color: var(--text-muted); font-size: 0.95rem;">رقم المشترك: ---</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); padding: 0.8rem 1.2rem; border-radius: 12px; text-align: center; min-width: 110px;">
+                                    <div style="color: #eab308; font-size: 1.5rem; font-weight: 800;" id="profile-banner-points">---</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">مجموع النقاط 🏆</div>
+                                </div>
+                                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.8rem 1.2rem; border-radius: 12px; text-align: center; min-width: 110px;">
+                                    <div style="color: #10b981; font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 5px;" id="profile-banner-bmi">---</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">كتلة الجسم (BMI)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Content Grid: Details vs Points History -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; align-items: start;">
+                            <!-- Column 1: Details & Last Weight -->
+                            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                <!-- Player details -->
+                                <div class="card" style="padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(10px); text-align: right;">
+                                    <h3 class="mb-3 text-primary" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.6rem; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-address-card"></i> معلومات المشترك</h3>
+                                    <div id="personal-profile-content" style="line-height: 1.8; font-size: 1.1rem;">
+                                        <!-- Populated via JS -->
+                                        <div class="spinner"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Last Weight -->
+                                <div class="card" style="padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(10px); text-align: right;">
+                                    <h3 class="mb-3 text-warning" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.6rem; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-scale-balanced"></i> آخر قياس تم تسجيله</h3>
+                                    <div id="personal-latest-weight">
+                                        <div class="spinner"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Points History -->
+                            <div class="card" style="padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(10px); text-align: right;">
+                                <h3 class="mb-3" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.6rem; color: #8b5cf6; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-clock-rotate-left"></i> سجل حركات النقاط</h3>
+                                <div id="personal-points-transactions">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div><!-- End app-layout -->
+    </div><!-- End dashboard-screen -->
+
+    <!-- Floating Chat Button (FAB) - أسفل اليمين -->
+    <div id="chat-fab" class="chat-fab" onclick="toggleChatDrawer()" title="رسائل الكوتش">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+            </path>
+        </svg>
+        <span class="chat-fab-label">رسائل</span>
+        <span id="player-unread-badge" class="chat-fab-badge hidden">0</span>
+    </div>
+
+    <!-- Chat Drawer -->
+    <div id="chat-overlay" class="chat-drawer-overlay" onclick="toggleChatDrawer()"></div>
+    <div id="chat-drawer" class="chat-drawer">
+        <div class="chat-drawer-header">
+            <h3 style="margin:0; font-size: 1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size: 1.5rem;"><i class="fa-solid fa-message" style="color:var(--primary)"></i></span> المساعد الفوري
+            </h3>
+            <button class="chat-drawer-close" onclick="toggleChatDrawer()">×</button>
+        </div>
+        <div class="chat-container">
+            <div id="chat-messages" class="messages-list scroll-hide">
+                <!-- Messages load here -->
+            </div>
+            <form id="chat-form"
+                style="padding: 1rem; background: var(--bg-surface); border-top: 1px solid var(--border); display: flex; gap: 0.8rem; align-items: center;">
+                <input type="text" id="chat-input-text" placeholder="اكتب رسالتك للمدرب..." required
+                    style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 0.8rem 1.2rem; color: white; outline: none; transition: 0.3s;"
+                    onfocus="this.style.borderColor='var(--primary)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                <button type="submit" class="btn btn-primary"
+                    style="border-radius: 50%; width: 45px; height: 45px; padding: 0; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        style="transform: rotate(180deg) translateX(2px);">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- ========== Floating AI Widget - Player ========== -->
+    <style>
+        #player-ai-fab {
+            display: none !important;
+        }
+        
+        .pai-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .pai-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Panel - Drawer style from right side */
+        #player-ai-panel {
+            position: fixed;
+            top: 0;
+            right: -420px; /* Hide off-screen to the right */
+            left: auto;
+            width: 400px;
+            max-width: 100vw;
+            height: 100vh;
+            max-height: 100vh;
+            background: rgba(18, 18, 22, 0.95);
+            backdrop-filter: blur(15px);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0;
+            box-shadow: -15px 0 45px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            z-index: 10001;
+            overflow: hidden;
+            transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: "Cairo", "Tajawal", sans-serif;
+            direction: rtl;
+        }
+        #player-ai-panel.open {
+            right: 0;
+        }
+        /* Header */
+        #pai-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(212, 175, 55, 0.08) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+        .pai-title { display: flex; align-items: center; gap: 10px; }
+        .pai-icon {
+            width: 38px; height: 38px; border-radius: 12px;
+            background: linear-gradient(135deg, #10b981, #d4af37);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .pai-name { font-size: 15px; font-weight: 700; color: #ececec; }
+        .pai-sub  { font-size: 11px; color: #9ca3af; }
+        #pai-status {
+            font-size: 11px; padding: 4px 10px; border-radius: 999px;
+            background: rgba(34,197,94,0.14); color: #86efac;
+        }
+        #pai-status.online  { background: rgba(34,197,94,0.15); color: #86efac; }
+        #pai-status.offline { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        .pai-close {
+            width: 30px; height: 30px; border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.06); color: #9ca3af; cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .pai-close:hover { background: rgba(255,255,255,0.12); color: #ececec; }
+        /* Messages */
+        #pai-messages {
+            flex: 1; overflow-y: auto; padding: 14px;
+            display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth;
+        }
+        #pai-messages::-webkit-scrollbar { width: 4px; }
+        #pai-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 999px; }
+        .pai-row { display: flex; gap: 8px; align-items: flex-end; animation: pFadeUp 0.2s ease; }
+        .pai-row.user { flex-direction: row-reverse; }
+        @keyframes pFadeUp {
+            from { opacity:0; transform:translateY(6px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        .pai-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800; flex-shrink: 0;
+        }
+        .pai-avatar.bot  { background: linear-gradient(135deg,#22c55e,#16a34a); color:white; }
+        .pai-avatar.user { background: rgba(255,255,255,0.1); color:#d1d5db; font-size:14px; }
+        .pai-bubble {
+            max-width: 82%; padding: 10px 14px; border-radius: 18px;
+            font-size: 13.5px; line-height: 1.75; overflow-wrap: anywhere;
+        }
+        .pai-bubble.bot {
+            background: rgba(40,40,40,0.95); border: 1px solid rgba(255,255,255,0.07);
+            color: #ececec; border-radius: 4px 18px 18px 18px;
+        }
+        .pai-bubble.user {
+            background: linear-gradient(160deg,rgba(34,197,94,0.2),rgba(22,163,74,0.16));
+            border: 1px solid rgba(34,197,94,0.2);
+            color: #ececec; border-radius: 18px 4px 18px 18px;
+        }
+        .pai-bubble.error { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.2); color:#fca5a5; }
+        .pai-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+        .pai-typing span {
+            width:6px; height:6px; border-radius:50%;
+            background: rgba(255,255,255,0.45); animation: paiBounce 1s infinite;
+        }
+        .pai-typing span:nth-child(2) { animation-delay:.18s; }
+        .pai-typing span:nth-child(3) { animation-delay:.36s; }
+        @keyframes paiBounce {
+            0%,80%,100% { transform:translateY(0); }
+            40%         { transform:translateY(-5px); }
+        }
+        /* Quick chips */
+        #pai-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 10px 14px 6px; flex-shrink: 0;
+        }
+        .pai-chip {
+            padding: 6px 12px; border-radius: 999px;
+            border: 1px solid rgba(34,197,94,0.22);
+            background: rgba(34,197,94,0.07); color: #86efac;
+            font-size: 12px; cursor: pointer; transition: background 0.2s;
+            font-family: inherit;
+        }
+        .pai-chip:hover { background: rgba(34,197,94,0.16); }
+        /* Input */
+        #pai-input-bar {
+            display: flex; gap: 8px; align-items: flex-end;
+            padding: 10px 14px 14px;
+            border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+        }
+        #pai-input {
+            flex: 1; min-height: 38px; max-height: 100px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px; padding: 8px 12px;
+            color: #ececec; font-size: 13px; resize: none; outline: none;
+            font-family: inherit; direction: rtl; transition: border-color 0.2s;
+        }
+        #pai-input:focus { border-color: rgba(34,197,94,0.5); }
+        #pai-input::placeholder { color: #6b7280; }
+        #pai-send {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: #22c55e; color: white; font-size: 16px;
+            border: none; cursor: pointer; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        #pai-send:hover { transform: scale(1.08); }
+        #pai-send:disabled { opacity: 0.5; cursor: wait; }
+        @media (max-width: 500px) {
+            #player-ai-panel { width: calc(100vw - 20px); left: 10px; bottom: 90px; }
+        }
+    </style>
+
+    <!-- PAI Overlay -->
+    <div id="pai-overlay" class="pai-overlay" onclick="togglePlayerAiPanel()"></div>
+
+    <!-- AI Panel -->
+    <div id="player-ai-panel">
+        <div id="pai-header">
+            <div class="pai-title">
+                <div class="pai-icon">🏋️</div>
+                <div>
+                    <div class="pai-name">ماستر جيم AI</div>
+                    <div class="pai-sub">مساعدك الرياضي الشخصي</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span id="pai-status">جاري التحقق...</span>
+                <button class="pai-close" onclick="togglePlayerAiPanel()">✕</button>
+            </div>
+        </div>
+
+        <div id="pai-messages"></div>
+
+        <div id="pai-chips">
+            <button class="pai-chip" onclick="paiQuickSend('متى ينتهي اشتراكي؟')">📅 اشتراكي</button>
+            <button class="pai-chip" onclick="paiQuickSend('ما هو برنامجي التدريبي اليوم؟')">🏋️ تمرينة اليوم</button>
+            <button class="pai-chip" onclick="paiQuickSend('كم نقاطي الحالية؟')">⭐ نقاطي</button>
+            <button class="pai-chip" onclick="paiQuickSend('أعطني نصيحة رياضية اليوم')">💡 نصيحة</button>
+        </div>
+
+        <div id="pai-input-bar">
+            <textarea id="pai-input" rows="1" placeholder="اسألني أي شيء..." onkeydown="paiHandleKey(event)" oninput="paiAutoResize(this)"></textarea>
+            <button id="pai-send" onclick="paiSendMessage()">↑</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== Player Floating AI Widget =====
+        const PAI_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000' : 'https://master-gym.onrender.com';
+
+        let paiPanelOpen = false;
+        let paiHistory = [];
+        let paiSending = false;
+
+        function getPlayerId() { return localStorage.getItem('player_id'); }
+        function getPlayerName() { return localStorage.getItem('gym_player_name') || 'لاعب'; }
+
+        function togglePlayerAiPanel() {
+            paiPanelOpen = !paiPanelOpen;
+            document.getElementById('player-ai-panel').classList.toggle('open', paiPanelOpen);
+
+            const overlay = document.getElementById('pai-overlay');
+            if (overlay) {
+                overlay.classList.toggle('active', paiPanelOpen);
+            }
+
+            if (paiPanelOpen && document.getElementById('pai-messages').children.length === 0) {
+                paiCheckHealth();
+                const name = getPlayerName().split(' ')[0];
+                const welcomeMsg = `مرحباً ${name}! 👋\n\nأنا مساعدك الرياضي الشخصي في ماستر جيم. يمكنني مساعدتك في:\n• متابعة اشتراكك وتواريخه\n• عرض برنامجك التدريبي\n• تتبع وزنك وتطورك\n• نصائح رياضية وغذائية\n\nبماذا يمكنني خدمتك اليوم؟`;
+                paiAddMessage('bot', welcomeMsg);
+                paiHistory.push({ role: 'assistant', content: welcomeMsg });
+            }
+        }
+
+        function paiCheckHealth() {
+            const el = document.getElementById('pai-status');
+            fetch(PAI_BASE + '/health')
+                .then(r => r.json())
+                .then(d => {
+                    const ok = d.ready ?? d.hasApiKey;
+                    el.textContent = ok ? 'متصل ✓' : 'غير جاهز';
+                    el.className = ok ? 'online' : 'offline';
+                })
+                .catch(() => { el.textContent = 'غير متصل'; el.className = 'offline'; });
+        }
+
+        function paiAddMessage(role, text, isTyping = false) {
+            const box = document.getElementById('pai-messages');
+            const row = document.createElement('div');
+            row.className = `pai-row ${role}`;
+
+            const av = document.createElement('div');
+            av.className = `pai-avatar ${role}`;
+            av.textContent = role === 'bot' ? '🤖' : '👤';
+
+            const bubble = document.createElement('div');
+            bubble.className = `pai-bubble ${role}`;
+
+            if (isTyping) {
+                bubble.innerHTML = '<div class="pai-typing"><span></span><span></span><span></span></div>';
+                row.id = 'pai-typing-row';
+            } else {
+                bubble.innerHTML = paiFormatText(text);
+            }
+
+            row.appendChild(av);
+            row.appendChild(bubble);
+            box.appendChild(row);
+            box.scrollTop = box.scrollHeight;
+            return row;
+        }
+
+        function paiFormatText(text) {
+            return text
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g,'<em>$1</em>')
+                .replace(/\n/g,'<br>');
+        }
+
+        async function paiSendMessage() {
+            const input = document.getElementById('pai-input');
+            const text = input.value.trim();
+            if (!text || paiSending) return;
+
+            input.value = '';
+            paiAutoResize(input);
+            paiAddMessage('user', text);
+            paiHistory.push({ role: 'user', content: text });
+
+            document.getElementById('pai-send').disabled = true;
+            paiSending = true;
+            const typingRow = paiAddMessage('bot', '', true);
+
+            try {
+                const contents = paiHistory.slice(-16).map(m => ({
+                    role: m.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: m.content }]
+                }));
+
+                const now = new Date();
+                const sysPrompt = `أنت "ماستر جيم AI"، المساعد الرياضي الشخصي للاعب في نادي ماستر جيم.
+تحدث بالعربية دائمًا وكن محفزاً. التاريخ: ${now.toLocaleDateString('ar-JO')} | الوقت: ${now.toLocaleTimeString('ar-JO')}
+أنت تتحدث مع لاعب (مشترك عادي). ستصلك بياناته الشخصية من الخادم. لا تعطِ صلاحيات إدارية.
+
+--- صلاحيات اللاعب وتجميد الاشتراك ---
+يمكنك تقديم طلب تجميد الاشتراك نيابةً عن اللاعب عبر أداة submit_freeze_request.
+هوية اللاعب يحددها الخادم تلقائياً، لا تحتاج لتمريرها.
+الأداة تحتاج فقط: days (عدد الأيام) و reason (السبب).
+إذا لم يحدد اللاعب عدد الأيام، اسأله عن المدة المطلوبة.
+إذا لم يذكر سبباً، اسأله عن السبب قبل تقديم الطلب.
+بعد تقديم الطلب بنجاح، أخبره أن الطلب أُرسل للكوتش وينتظر الموافقة في لوحة الإدارة.
+الحد الأقصى للتجميد 30 يوم، والحد الأدنى يوم واحد.`;
+
+                const res = await fetch(PAI_BASE + '/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        playerId: getPlayerId(),
+                        adminId: null,
+                        enableSearch: /ابحث|الإنترنت|الانترنت/.test(text),
+                        systemInstruction: { parts: [{ text: sysPrompt }] }
+                    })
+                });
+
+                const data = await res.json();
+                typingRow.remove();
+                if (!res.ok) throw new Error(data.error || 'حدث خطأ في الخادم');
+
+                const reply = data.reply || '';
+                paiHistory.push({ role: 'assistant', content: reply });
+                paiAddMessage('bot', reply);
+
+            } catch (err) {
+                typingRow.remove();
+                const errRow = paiAddMessage('bot', 'تعذر إكمال الطلب: ' + err.message);
+                errRow.querySelector('.pai-bubble').classList.add('error');
+            } finally {
+                paiSending = false;
+                document.getElementById('pai-send').disabled = false;
+            }
+        }
+
+        function paiQuickSend(text) {
+            document.getElementById('pai-input').value = text;
+            paiSendMessage();
+        }
+
+        function paiHandleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); paiSendMessage(); }
+        }
+
+        function paiAutoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        }
+
+        // إظهار الـ FAB بعد تسجيل الدخول
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('.player-nav .nav-btn[data-target]');
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetId = e.currentTarget.getAttribute('data-target');
+                    if (!targetId) return;
+
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+
+                    const sections = document.querySelectorAll('#dashboard-screen .admin-section');
+                    sections.forEach(sec => sec.classList.remove('active'));
+
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) targetSection.classList.add('active');
+
+                    if (targetId === 'player-personal-profile') {
+                        setTimeout(() => {
+                            if (typeof window.loadPersonalProfile === 'function') window.loadPersonalProfile();
+                        }, 100);
+                    }
+                });
+            });
+        });
+
+        // Global Password Visibility Toggle
+        window.togglePasswordVisibility = function (inputId, iconElement) {
+            const input = document.getElementById(inputId);
+            const icon = iconElement.querySelector('i') || iconElement;
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconElement.style.opacity = '1';
+                if(icon.tagName === 'I') icon.className = 'fa-regular fa-eye-slash';
+                else iconElement.textContent = '👁️‍🗨️';
+            } else {
+                input.type = 'password';
+                iconElement.style.opacity = '0.7';
+                if(icon.tagName === 'I') icon.className = 'fa-regular fa-eye';
+                else iconElement.textContent = '👁️';
+            }
+        }
+    </script>
+
+    <!-- Modal: Forgot Password -->
+    <div id="forgot-password-modal" class="modal-overlay hidden">
+        <div class="modal" style="max-width: 450px; background: rgba(30, 30, 30, 0.85); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--primary); margin: 0; font-weight: 800; font-size: 1.25rem;">نسيت كلمة المرور؟</h3>
+                <button type="button" class="btn btn-outline small" onclick="closeForgotPasswordModal()" style="border:none; font-size:1.2rem; background:none; color:white; cursor:pointer;">✕</button>
+            </div>
+            <p class="text-muted mb-3" style="font-size: 0.95rem; line-height: 1.5;">أدخل رقم الهاتف المسجل لحسابك وسنقوم بإرسال طلب لإعادة تعيين كلمة المرور إلى إدارة النادي.</p>
+            <div class="input-group">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="tel" id="forgot-phone" placeholder="05XXXXXXXX" class="form-control" required>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:1.5rem;">
+                <button type="button" class="btn btn-primary" onclick="submitForgotPasswordRequest()" style="flex:1;">إرسال الطلب</button>
+                <button type="button" class="btn btn-outline" onclick="closeForgotPasswordModal()" style="flex:1;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/supabase.js"></script>
+    <script src="js/player.js"></script>
+</body>
+
+</html>

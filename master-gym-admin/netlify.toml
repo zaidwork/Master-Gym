@@ -1,0 +1,3 @@
+# Netlify configuration for Master Gym Admin Frontend
+[build]
+  publish = "."

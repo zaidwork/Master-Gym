@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماستر جيم - الإدارة</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js & Html5-QRCode & jsQR & html2pdf -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Print Overrides */
+        @media print {
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body>*:not(#invoice-template-container) {
+                display: none !important;
+            }
+
+            #invoice-template-container {
+                visibility: visible !important;
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            .bg-dark {
+                background: white !important;
+            }
+        }
+
+        /* Profile Modal Tweak */
+        #player-profile-modal .modal {
+            background: linear-gradient(145deg, #1f2937, #111827) !important;
+            border: 1px solid rgba(249, 115, 22, 0.4);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9);
+        }
+
+        #player-profile-modal {
+            background: rgba(0, 0, 0, 0.75) !important;
+            backdrop-filter: blur(8px);
+        }
+    </style>
+
+
+
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+    <!-- Hidden element required by Html5Qrcode for file scanning -->
+    <div id="qr-image-processor-hidden"
+        style="position:fixed; left:-9999px; top:-9999px; width:300px; height:300px; overflow:hidden;"></div>
+
+    <!-- Admin Login Screen -->
+    <div id="admin-login-screen" class="screen active">
+        <div class="auth-container">
+            <h1 class="logo">ماستر جيم <span>للإدارة</span></h1>
+            <form id="admin-login-form" class="auth-form active">
+                <div class="input-group">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" id="admin-username" required class="form-control">
+                </div>
+                <div class="input-group">
+                    <label class="form-label">كلمة المرور</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="admin-password" required class="form-control">
+                        <span class="toggle-password"
+                            onclick="togglePasswordVisibility('admin-password', this)">👁️</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 1rem;">دخول
+                    للإدارة</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Screen (App Shell) -->
+    <div id="admin-dashboard-screen" class="screen">
+
+
+        <div class="app-layout">
+            <header class="app-topbar">
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <button onclick="toggleSidebar()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">☰</button>
+                    <div class="topbar-title" style="margin:0; font-weight:bold; font-size:1.2rem;">لوحة تحكم <span style="color:var(--primary);">المدير</span></div>
+                </div>
+                <div class="topbar-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input id="global-search-input" type="text" placeholder="بحث المشتركين السريع (اضغط Enter)...">
+                </div>
+                <div class="topbar-actions">
+                    <span id="welcome-name" style="font-weight:700; margin-left:10px; color:var(--text-main);">لوحة تحكم المدير</span>
+                    <div class="notifications-wrapper relative">
+                        <button class="topbar-btn" onclick="toggleNotifications()">
+                            <i class="fa-regular fa-bell"></i>
+                            <span id="global-unread-badge" class="notif-dot hidden"></span>
+                        </button>
+                        <div id="notifications-dropdown" class="notifications-dropdown hidden card"
+                            style="position:absolute; top: 45px; left: -10px; width: 330px; z-index: 1000; max-height: 400px; overflow-y:auto; padding:0;">
+                            <div
+                                style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                                <h4 style="margin:0;">الإشعارات</h4>
+                                <button class="btn btn-outline btn-sm" onclick="clearAllNotifications()">مسح الكل
+                                    🗑️</button>
+                            </div>
+                            <div id="notifications-list" style="display:flex; flex-direction:column; padding:0.5rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Sidebar -->
+            <aside class="app-sidebar card">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 2.5rem; justify-content:center;">
+                    <img src="img/tiger_logo.png" alt="Tiger Logo" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(252, 163, 17, 0.4);">
+                    <h2 class="logo" style="margin-bottom: 0; font-size: 1.5rem; text-align:right; line-height:1.2;">ماستر جيم<br><span style="font-size:1rem; letter-spacing:1px; color:var(--primary);">MASTER GYM</span></h2>
+                </div>
+                <nav class="admin-nav">
+                    <button class="nav-btn active" data-target="admin-dashboard-home"><i class="fa-solid fa-house"></i> لوحة التحكم</button>
+                    <button class="nav-btn" data-target="view-players"><i class="fa-solid fa-users"></i> الأعضاء</button>
+                    <button class="nav-btn" data-target="view-player-profiles"><i class="fa-solid fa-address-card"></i> تفاصيل الأعضاء</button>
+                    <button class="nav-btn" data-target="view-schedules"><i class="fa-solid fa-dumbbell"></i> الفئات والحصص</button>
+                    <button class="nav-btn" data-target="admin-expenses"><i class="fa-solid fa-money-bill-trend-up"></i> الإيرادات والمصروفات</button>
+                    <button class="nav-btn" data-target="admin-qr-scanner"><i class="fa-solid fa-qrcode"></i> ماسح الملفات السريع</button>
+                    <button class="nav-btn" data-target="view-freeze-requests"><i class="fa-regular fa-snowflake"></i> طلبات التجميد</button>
+                    <button class="nav-btn" data-target="view-renewals"><i class="fa-solid fa-rotate-right"></i> طلبات التجديد</button>
+                    <button class="nav-btn" data-target="view-sub-types"><i class="fa-solid fa-credit-card"></i> أنواع الاشتراكات</button>
+                    <button class="nav-btn" data-target="admin-bot" style="color: var(--success); text-align: right;"><i class="fa-solid fa-robot"></i> المساعد الذكي</button>
+                    <button class="nav-btn" data-target="view-password-resets"><i class="fa-solid fa-key"></i> طلبات تعيين كلمة المرور</button>
+                    <button class="nav-btn" data-target="admin-settings"><i class="fa-solid fa-gear"></i> الإعدادات</button>
+                </nav>
+            </aside>
+
+            <main class="app-main">
+                
+                <!-- AI Assistant Section -->
+                <section id="admin-bot" class="admin-section" style="padding: 0; height: calc(100vh - 80px);">
+                    <iframe src="./bot.html" style="width:100%; height:100%; border:none; border-radius:12px;"></iframe>
+                </section>
+
+
+                <!-- Analytics Dashboard -->
+                <section id="admin-dashboard-home" class="admin-section active">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1.5rem; margin-bottom: 2rem;"
+                        class="stats-grid-4">
+                        <div class="stat-card blue">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                                <div class="stat-label" style="text-align:right;">إجمالي الدخل</div>
+                                <div class="stat-icon" style="margin:0; width:40px; height:40px; font-size:1.2rem;"><i class="fa-solid fa-shekel-sign"></i></div>
+                            </div>
+                            <h2 id="total-income-stat" class="stat-value" style="text-align:right; width:100%; margin-top:0.5rem; color:#3b82f6;">0</h2>
+                        </div>
+                        <div class="stat-card red">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                                <div class="stat-label" style="text-align:right;">المصروفات</div>
+                                <div class="stat-icon" style="margin:0; width:40px; height:40px; font-size:1.2rem;"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            </div>
+                            <h2 id="total-expenses-stat" class="stat-value" style="text-align:right; width:100%; margin-top:0.5rem; color:#ef4444;">0</h2>
+                        </div>
+                        <div class="stat-card green">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                                <div class="stat-label" style="text-align:right;">صافي الأرباح</div>
+                                <div class="stat-icon" style="margin:0; width:40px; height:40px; font-size:1.2rem;"><i class="fa-solid fa-sack-dollar"></i></div>
+                            </div>
+                            <h2 id="net-profit-stat" class="stat-value" style="text-align:right; width:100%; margin-top:0.5rem; color:#10b981;">0</h2>
+                        </div>
+                        <div class="stat-card orange">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                                <div class="stat-label" style="text-align:right;">الاشتراكات النشطة</div>
+                                <div class="stat-icon" style="margin:0; width:40px; height:40px; font-size:1.2rem;"><i class="fa-solid fa-user-check"></i></div>
+                            </div>
+                            <h2 id="active-subs-stat" class="stat-value" style="text-align:right; width:100%; margin-top:0.5rem; color:var(--primary);">0</h2>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <!-- Expiring Soon -->
+                        <div class="card">
+                            <h3 class="text-warning" style="margin-bottom: 1rem;">🚨 قارب على الانتهاء (3 أيام فأقل)
+                            </h3>
+                            <div id="expiring-soon-list" class="list-group" style="max-height: 300px;">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Freezes -->
+                        <div class="card">
+                            <h3 class="text-primary" style="margin-bottom: 1rem;">❄️ طلبات التجميد</h3>
+                            <div id="freeze-requests-list" class="list-group" style="max-height: 300px;">
+                                <!-- Phase 5 will populate this -->
+                                <p class="text-muted text-center" style="margin-top:2rem;">سيتم تحميل طلبات التجميد هنا
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Admin Expenses Section -->
+                <section id="admin-expenses" class="admin-section">
+                    <div class="section-header">
+                        <h2>إدارة المصروفات النثرية واحتساب الأرباح 💸</h2>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 2.5fr; gap:2rem;">
+                        <!-- Add Expense Form -->
+                        <div class="card">
+                            <h3 class="mb-2">تسجيل مصروف جديد</h3>
+                            <form id="expense-form">
+                                <div class="input-group">
+                                    <label class="form-label">وصف المصروف</label>
+                                    <input type="text" id="expense-title" placeholder="فاتورة كهرباء، إيجار..." required
+                                        class="form-control">
+                                </div>
+                                <div class="input-group mt-1">
+                                    <label class="form-label">المبلغ (₪)</label>
+                                    <input type="number" step="0.1" id="expense-amount" required class="form-control">
+                                </div>
+                                <div class="input-group mt-1">
+                                    <label class="form-label">التصنيف</label>
+                                    <select class="form-control" id="expense-category">
+                                        <option value="ايجار">إيجار النادي</option>
+                                        <option value="فواتير">فواتير (ماء، كهرباء، إنترنت)</option>
+                                        <option value="صيانة">صيانة وأجهزة</option>
+                                        <option value="رواتب">رواتب مدربين وموظفين</option>
+                                        <option value="مشتريات">مشتريات وبضائع</option>
+                                        <option value="اخرى">مصروفات أخرى</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-2" style="width:100%;">اعتماد
+                                    المصروف</button>
+                            </form>
+                        </div>
+                        <!-- List of Expenses -->
+                        <div class="card">
+                            <h3 class="mb-2">سجل المصروفات المعتمدة</h3>
+                            <div class="table-container">
+                                <table id="expenses-table" class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>وصف المصروف</th>
+                                            <th>المبلغ</th>
+                                            <th>التصنيف</th>
+                                            <th>تاريخ التسجيل</th>
+                                            <th>الإجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- Admin Scanner -->
+                <section id="admin-qr-scanner" class="admin-section">
+                    <div class="section-header">
+                        <h2>🔍 الماسح الذكي لملف اللاعب</h2>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+
+                        <!-- Left: Camera + Upload Scanner -->
+                        <div class="card" style="padding: 1.5rem;">
+                            <h3 class="mb-2" style="color: var(--primary);">📷 مسح رمز QR</h3>
+
+                            <!-- Mode Tabs -->
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                                <button id="scanner-camera-btn" class="btn btn-primary small"
+                                    onclick="switchScannerMode('camera')" style="flex:1;">📷 كاميرا</button>
+                                <button id="scanner-upload-btn" class="btn btn-outline small"
+                                    onclick="switchScannerMode('upload')" style="flex:1;">🖼️ رفع صورة</button>
+                            </div>
+
+                            <!-- Camera Mode -->
+                            <div id="scanner-camera-mode">
+                                <div id="qr-reader"
+                                    style="width:100%; border-radius:12px; overflow:hidden; min-height: 200px;"></div>
+                            </div>
+
+                            <!-- Upload Mode -->
+                            <div id="scanner-upload-mode" style="display:none;">
+                                <label for="qr-image-upload"
+                                    style="display:block; border: 2px dashed var(--primary); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s;"
+                                    onmouseover="this.style.background='rgba(249,115,22,0.05)'"
+                                    onmouseout="this.style.background='transparent'">
+                                    <div style="font-size: 3rem;">📤</div>
+                                    <p style="margin: 0.5rem 0 0; color: var(--text-muted);">انقر لاختيار صورة تحتوي رمز
+                                        QR</p>
+                                    <p style="font-size:0.8rem; color: var(--text-muted); margin-top:0.3rem;">PNG, JPG,
+                                        WEBP</p>
+                                </label>
+                                <input type="file" id="qr-image-upload" accept="image/*" style="display:none;"
+                                    onchange="scanQRFromImage(this)">
+                            </div>
+
+                            <div id="qr-scan-result" class="alert hidden mt-2"></div>
+                        </div>
+
+                        <!-- Right: Manual Search -->
+                        <div class="card" style="padding: 1.5rem;">
+                            <h3 class="mb-2" style="color: var(--primary);">🔎 بحث يدوي سريع</h3>
+                            <div class="input-group">
+                                <label class="form-label">ابحث بالاسم أو الهاتف أو الرقم</label>
+                                <input type="text" id="quick-search-input" placeholder="اكتب هنا..."
+                                    oninput="quickSearchPlayer(this.value)"
+                                    style="border-radius: 30px; padding: 0.8rem 1.2rem;">
+                            </div>
+                            <div id="quick-search-results"
+                                style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                                <p class="text-muted text-center" style="padding: 1rem;">ابدأ بالكتابة للبحث...</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+
+                <!-- Freezer Requests -->
+                <section id="view-freeze-requests" class="admin-section">
+                    <div class="section-header">
+                        <h2>طلبات تجميد الاشتراكات ❄️</h2>
+                    </div>
+                    <div class="card">
+                        <div class="table-container">
+                            <table id="freeze-requests-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>اللاعب</th>
+                                        <th>رقم الجوال</th>
+                                        <th>عدد الأيام</th>
+                                        <th>السبب</th>
+                                        <th>التاريخ</th>
+                                        <th>الإجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View Players -->
+                <section id="view-players" class="admin-section">
+                    <div class="section-header">
+                        <h2>إدارة المشتركين والاشتراكات</h2>
+                    </div>
+
+                    <div class="status-filters tabs" style="max-width: 450px;">
+                        <button class="tab-btn active" data-filter="all">الكل</button>
+                        <button class="tab-btn" data-filter="pending">قيد الانتظار</button>
+                        <button class="tab-btn" data-filter="approved">نشطين</button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;"
+                        class="mt-2 mb-1">
+                        <div class="input-group" style="flex:1; max-width: 500px; margin:0;">
+                            <input type="text" id="player-search-input"
+                                placeholder="بحث باستخدام رقم المشترك، الاسم، أو الهاتف..." class="form-control"
+                                style="border-radius: 20px; padding: 0.8rem 1.5rem; border: 1px solid var(--primary); background: rgba(0,0,0,0.2);">
+                        </div>
+                        <button class="btn btn-primary" onclick="openSendNotificationModal()"
+                            style="border-radius:20px;">📢 إرسال إشعار للمشتركين</button>
+                    </div>
+
+                    <div class="table-container mt-2">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>رقم المشترك</th>
+                                    <th>الاسم الرباعي</th>
+                                    <th>الهاتف</th>
+                                    <th>التصنيف</th>
+                                    <th>حالة الحساب</th>
+                                    <th>الاشتراك الحالي</th>
+                                    <th>الإجراءات المتاحة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="players-table-body">
+                                <!-- Players populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Detailed Player Profiles -->
+                <section id="view-player-profiles" class="admin-section">
+                    <div class="section-header">
+                        <h2>معلومات اللاعبين التفصيلية</h2>
+                    </div>
+                    <div class="input-group mb-2" style="max-width: 500px;">
+                        <input type="text" id="profile-search-input"
+                            placeholder="بحث باستخدام رقم المشترك، الاسم، أو الهاتف..." class="form-control"
+                            style="border-radius: 20px; padding: 0.8rem 1.5rem; border: 1px solid var(--primary); background: rgba(0,0,0,0.2);">
+                    </div>
+                    <div id="player-profiles-grid" class="grid-cards" style="gap: 1.5rem;">
+                        <!-- Cards dynamically added via JS -->
+                        <div class="spinner"></div>
+                    </div>
+                </section>
+
+                <!-- View Renewals -->
+                <section id="view-renewals" class="admin-section">
+                    <div class="section-header">
+                        <h2>إدارة طلبات التجديد</h2>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>المشترك</th>
+                                    <th>تاريخ الطلب</th>
+                                    <th>الحالة</th>
+                                    <th>معالجة الطلب</th>
+                                </tr>
+                            </thead>
+                            <tbody id="renewals-table-body">
+                                <!-- Renewals populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- View Subscription Types -->
+                <section id="view-sub-types" class="admin-section">
+                    <div class="section-header">
+                        <h2>إعدادات أنواع الاشتراكات</h2>
+                        <button class="btn btn-primary" onclick="openSubModal()">+ إضافة باقة جديدة</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الباقة</th>
+                                    <th>المدة (أيام)</th>
+                                    <th>السعر (₪)</th>
+                                    <th>ملاحظات إضافية</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sub-types-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- View Schedules -->
+                <section id="view-schedules" class="admin-section">
+                    <div class="section-header">
+                        <h2>إدارة برامج التمرين المتطورة</h2>
+                    </div>
+
+                    <div class="flex-row" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+                        <!-- Builder UI -->
+                        <div class="card p-2 widget" style="flex: 2; min-width: 300px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                                <h3>قوالب البرامج التدريبية</h3>
+                                <button class="btn btn-primary small" onclick="openTemplateModal()">+ إنشاء قالب
+                                    جديد</button>
+                            </div>
+                            <div class="input-group mb-1">
+                                <input type="text" id="schedule-template-search" placeholder="بحث عن قالب..."
+                                    class="form-control" style="background: rgba(0,0,0,0.1);">
+                            </div>
+                            <div class="table-container" style="max-height: 250px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>اسم القالب</th>
+                                            <th>الوصف</th>
+                                            <th>إجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="templates-table-body">
+                                        <!-- Templates loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Assigner UI -->
+                        <div class="card p-2 widget" style="flex: 1; min-width: 250px;">
+                            <h3>تعيين برنامج للاعب</h3>
+                            <div class="input-group" style="margin-top: 1rem;">
+                                <label class="form-label">اختر اللاعب أو ابحث عنه</label>
+                                <input type="text" id="schedule-player-search" class="form-control mb-1"
+                                    placeholder="اكتب اسم اللاعب للتصفية..." style="background: rgba(0,0,0,0.1);">
+                                <select class="form-control" id="schedule-player-select" required size="4"
+                                    style="height: auto; max-height: 120px;"></select>
+                            </div>
+                            <div class="input-group mt-2 mb-2">
+                                <label class="form-label">اختر القالب الرياضي (Template)</label>
+                                <select class="form-control" id="schedule-template-select" required></select>
+                            </div>
+                            <button class="btn btn-primary" style="width:100%" onclick="assignTemplate()">إرسال الجدول
+                                للّاعب 🚀</button>
+                        </div>
+                    </div>
+
+                    <div class="card mt-2">
+                        <h3 class="mb-1 text-primary">الجداول الفعالة والمُسندة للاعبين</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>اللاعب</th>
+                                        <th>الجدول المعين</th>
+                                        <th>تاريخ الإسناد</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="active-schedules-body">
+                                    <!-- Loaded via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Password Reset Requests -->
+                <section id="view-password-resets" class="admin-section">
+                    <div class="section-header">
+                        <h2>طلبات إعادة تعيين كلمة المرور 🔑</h2>
+                        <p class="text-muted">إدارة طلبات إعادة تعيين كلمات المرور للمشتركين الذين نسوا بيانات دخولهم.</p>
+                    </div>
+
+                    <div class="card p-0">
+                        <div class="table-container" style="border: none; border-radius: 12px; max-height: 70vh; overflow-y: auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>اللاعب</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>البريد الإلكتروني الحالي</th>
+                                        <th>تاريخ الطلب</th>
+                                        <th>الحالة</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="password-resets-body">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">جاري تحميل الطلبات...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Admin Settings & Backup -->
+                <section id="admin-settings" class="admin-section">
+                    <div class="section-header">
+                        <h2>الإعدادات المتقدمة والنسخ الاحتياطي ⚙️</h2>
+                    </div>
+
+                    <div
+                        style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; margin-bottom: 2rem;">
+
+                        <!-- Backup Card -->
+                        <div class="card" style="border-top: 4px solid var(--primary);">
+                            <h3 class="mb-2" style="color: var(--primary);">📥 أخذ نسخة احتياطية (Backup)</h3>
+                            <p class="text-muted mb-2">قم بتنزيل كافة بيانات الموقع (المشتركين، الاشتراكات، الجداول،
+                                والمزيد) كملف JSON آمن ومحمي.</p>
+                            <button class="btn btn-primary" onclick="exportBackup()"
+                                style="width: 100%; font-size: 1.1rem; padding: 0.8rem;">تحميل نسخة احتياطية ⬇️</button>
+                        </div>
+
+                        <!-- Restore Card -->
+                        <div class="card" style="border-top: 4px solid #10b981;">
+                            <h3 class="mb-2" style="color: #10b981;">📤 استعادة البيانات (Restore)</h3>
+                            <p class="text-muted mb-2">قم برفع ملف النسخة الاحتياطية (JSON) لاسترجاع البيانات. يرجى
+                                الحذر فهذه العملية ستدمج البيانات.</p>
+                            <div class="input-group">
+                                <label for="restore-file-input" class="btn btn-outline"
+                                    style="width: 100%; border-color: #10b981; color: #10b981; text-align: center; cursor: pointer; padding: 0.8rem;">اختر
+                                    ملف النسخة الاحتياطية 📁</label>
+                                <input type="file" id="restore-file-input" accept=".json" style="display: none;"
+                                    onchange="importBackup(this)">
+                            </div>
+                        </div>
+
+                        <!-- Factory Reset Card -->
+                        <div class="card" style="border-top: 4px solid var(--danger);">
+                            <h3 class="mb-2" style="color: var(--danger);">⚠️ ضبط المصنع (مسح شامل)</h3>
+                            <p class="text-muted mb-2">احذر! هذا الخيار سيقوم بحذف <strong
+                                    style="color:var(--danger)">كافة المشتركين والبيانات</strong> ولن تتمكن من التراجع
+                                أبداً.</p>
+                            <button class="btn btn-primary" onclick="resetAllData()"
+                                style="width: 100%; background: var(--danger); font-size: 1.1rem; padding: 0.8rem;">حذف
+                                جميع البيانات 🗑️</button>
+                        </div>
+
+                        <!-- EmailJS Template ID Card -->
+                        <div class="card" style="border-top: 4px solid #0ea5e9; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <h3 class="mb-2" style="color: #0ea5e9;">✉️ إعدادات البريد الإلكتروني EmailJS</h3>
+                                <p class="text-muted mb-3">اضبط معرف القالب (Template ID) الخاص بخدمة EmailJS لإرسال كلمات المرور الجديدة للمشتركين.</p>
+                                <div class="input-group">
+                                    <label class="form-label" style="text-align: right; display: block;">معرف القالب (Template ID)</label>
+                                    <input type="text" id="emailjs-template-id" placeholder="template_xxxxxxx" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white;">
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" onclick="saveEmailJSTemplateId()" style="width: 100%; border-color: #0ea5e9; color: #0ea5e9; margin-top: 1rem;">حفظ المعرف 💾</button>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div><!-- End app-layout -->
+    </div><!-- End admin-dashboard-screen -->
+
+    <!-- Modal: Confirm Password Reset -->
+    <div id="admin-reset-confirm-modal" class="modal-overlay hidden">
+        <div class="modal" style="max-width: 450px; background: rgba(30, 30, 30, 0.85); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--primary); margin: 0; font-weight: 800; font-size: 1.25rem;">تأكيد إعادة تعيين كلمة المرور</h3>
+                <button type="button" class="btn btn-outline small" onclick="closeAdminResetModal()" style="border:none; font-size:1.2rem; background:none; color:white; cursor:pointer;">✕</button>
+            </div>
+            <p class="text-muted mb-3" style="font-size: 0.95rem; line-height: 1.5;">
+                سيقوم النظام بإنشاء كلمة مرور جديدة عشوائية للاعب <strong id="reset-modal-player-name" style="color: white;">-</strong> وإرسالها إلى بريده الإلكتروني.
+            </p>
+            <form id="admin-reset-confirm-form" onsubmit="handleAdminResetSubmit(event)">
+                <input type="hidden" id="reset-modal-request-id">
+                <div class="input-group">
+                    <label class="form-label">البريد الإلكتروني للاعب</label>
+                    <input type="email" id="reset-modal-email" required placeholder="name@domain.com" class="form-control" style="direction: ltr; text-align: left; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white;">
+                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.3rem; text-align: right;">يرجى التحقق من صحة البريد الإلكتروني لإرسال كلمة المرور بنجاح.</p>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:1.5rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">توليد وإرسال 📤</button>
+                    <button type="button" class="btn btn-outline" onclick="closeAdminResetModal()" style="flex:1;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Full Player Profile -->
+    <div id="player-profile-modal" class="modal-overlay hidden">
+        <div class="modal" style="max-width: 700px;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                <h2 style="color: var(--primary); margin: 0;">الملف الشخصي الشامل</h2>
+                <button type="button" class="btn btn-outline small" onclick="closeProfileModal()"
+                    style="border:none; font-size:1.2rem;">✕</button>
+            </div>
+
+            <div id="profile-modal-content" style="max-height: 60vh; overflow-y: auto; padding-right: 15px;">
+                <!-- Dynamo Profile Details -->
+                <div class="spinner"></div>
+            </div>
+            <div class="modal-footer"
+                style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <button type="button" class="btn btn-outline" onclick="closeProfileModal()"
+                    style="width: 100%;">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Subscription Type -->
+    <div id="sub-type-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 id="sub-modal-title" class="mb-2">تأسيس نظام اشتراك جديد</h3>
+            <form id="sub-type-form">
+                <input type="hidden" id="edit-sub-id">
+                <div class="input-group">
+                    <label class="form-label">تسمية باقة الاشتراك</label>
+                    <input type="text" id="sub-name" required placeholder="مثال: اشتراك شهر شباب..."
+                        class="form-control">
+                </div>
+                <div class="flex-row">
+                    <div class="input-group">
+                        <label class="form-label">المدة الفعالة (أيام)</label>
+                        <input type="number" id="sub-days" required min="1" value="30" class="form-control">
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">التكلفة (₪)</label>
+                        <input type="number" id="sub-price" required min="0" step="0.5" value="150"
+                            class="form-control">
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">النقاط الممنوحة 🏆</label>
+                        <input type="number" id="sub-points" required min="0" value="100" class="form-control">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">توضيحات إضافية للمشترك (اختياري)</label>
+                    <input type="text" id="sub-desc" placeholder="يتضمن صالة الحديد الأساسية..." class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeSubModal()">إلغاء الأمر</button>
+                    <button type="submit" id="sub-submit-btn" class="btn btn-primary">اعتماد الباقة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Assign Subscription -->
+    <div id="assign-sub-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="mb-1">تفعيل أو تجديد اشتراك لاعب</h3>
+            <div id="assign-sub-player-name" class="alert info mb-2"
+                style="background:var(--bg-dark); border:1px solid var(--border);"></div>
+            <form id="assign-sub-form">
+                <input type="hidden" id="assign-player-id">
+                <div class="input-group">
+                    <label class="form-label">اختر الباقة المناسبة</label>
+                    <select class="form-control" id="assign-sub-type" required></select>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">تاريخ البدء المحتسب</label>
+                    <input type="date" id="assign-start-date" required class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeAssignModal()">إلغاء التجديد</button>
+                    <button type="submit" class="btn btn-primary">تأكيد التفعيل فوراً</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Template -->
+    <div id="template-modal" class="modal-overlay hidden">
+        <div class="modal"
+            style="max-width: 800px; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div
+                style="border-bottom: 2px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="template-modal-title" style="margin: 0; color: var(--primary); font-size: 1.5rem;">✨ بناء قالب تدريبي جديد</h3>
+                <button type="button" class="btn btn-outline small"
+                    style="border: none; font-size: 1.2rem; padding: 0.2rem 0.6rem;"
+                    onclick="closeTemplateModal()">✕</button>
+            </div>
+
+            <form id="template-form">
+                <div class="flex-row" style="gap: 1rem; flex-wrap: wrap;">
+                    <div class="input-group" style="flex: 2; min-width: 250px;">
+                        <label style="font-weight: 600; margin-bottom: 0.5rem;">اسم القالب (مثال: تضخيم للمبتدئين 4
+                            أيام) <span style="color: var(--danger);">*</span></label>
+                        <input type="text" id="template-name" required
+                            style="padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark);">
+                    </div>
+                    <div class="input-group" style="flex: 3; min-width: 250px;">
+                        <label style="font-weight: 600; margin-bottom: 0.5rem;">وصف القالب (معلومات عامة)</label>
+                        <textarea id="template-desc" rows="1"
+                            style="padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); resize: none;"></textarea>
+                    </div>
+                </div>
+
+                <h4
+                    style="margin: 1.5rem 0 1rem; padding: 0.75rem 1rem; background: rgba(var(--primary-rgb), 0.1); border-right: 4px solid var(--primary); border-radius: 6px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 700; font-size: 1.1rem;">📅 أيام التدريب وتفاصيل الجلسات</span>
+                    <button type="button" class="btn btn-primary small" onclick="addDayToTemplate()"
+                        style="border-radius: 20px; font-weight: bold; padding: 0.4rem 1rem; box-shadow: 0 4px 10px rgba(var(--primary-rgb), 0.3);">+
+                        إضافة يوم تدريبي</button>
+                </h4>
+
+                <div id="template-days-container"
+                    style="display:flex; flex-direction:column; gap:1.5rem; max-height: 45vh; overflow-y: auto; padding-right: 10px; margin-bottom:1.5rem; border: 1px dashed var(--border); padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.1);">
+                    <!-- Days dynamically added here -->
+                    <p class="text-muted" style="text-align:center; margin: 2rem 0; font-size: 1.1rem;"
+                        id="no-days-msg">لم يتم إضافة أي أيام بعد.<br><span
+                            style="font-size: 0.9rem; opacity: 0.8;">اضغط على زر <strong style="color:var(--primary);">+
+                                إضافة يوم تدريبي</strong> للبدء في بناء الجدول.</span></p>
+                </div>
+
+                <div class="modal-footer"
+                    style="border-top: 1px solid var(--border); padding-top: 1.5rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-outline" style="min-width: 120px; border-radius: 8px;"
+                        onclick="closeTemplateModal()">الغاء</button>
+                    <button type="button" id="save-template-btn" class="btn btn-primary"
+                        style="min-width: 180px; font-weight: bold; font-size: 1.1rem; border-radius: 8px;"
+                        onclick="saveTemplate()">💾 حفظ القالب واعتماده</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Invoice Template (Printed Via Browser Native Print) -->
+    <div id="invoice-template-container" style="display: none;">
+        <div id="invoice-template"
+            style="width:100%; max-width:800px; padding:60px; background:white; color:#1a1a1a; font-family:'Cairo', sans-serif; direction:rtl; position:relative; margin: 0 auto;">
+            <!-- Decorative Strip -->
+            <div
+                style="position:absolute; top:0; left:0; right:0; height:8px; background:linear-gradient(90deg, #ff6a00, #ffb380);">
+            </div>
+
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eaeaea; padding-bottom:30px; margin-bottom:40px; margin-top:20px;">
+                <div>
+                    <h1 style="color:#ff6a00; font-weight:900; font-size:42px; margin:0; letter-spacing:-1px;">ماستر
+                        <span style="color:#111;">جيم</span>
+                    </h1>
+                    <p style="color:#777; font-size:15px; margin-top:5px; font-weight:600;">بناء الأجسام واللياقة
+                        البدنية الاحترافية</p>
+                    <p style="color:#888; font-size:12px; margin-top:5px;">📍 فلسطين، طوباس | 📞 0598776026</p>
+                </div>
+                <div
+                    style="text-align:right; background:#fafafa; padding:20px 30px; border-radius:12px; border:1px solid #eee;">
+                    <h2
+                        style="font-size:26px; color:#111; margin:0; margin-bottom:10px; font-weight:800; letter-spacing:1px;">
+                        فاتورة ضريبية</h2>
+                    <p style="color:#555; font-size:15px; margin:0 0 5px 0;">رقم السند: <strong id="inv-id"
+                            style="color:#000;"></strong></p>
+                    <p style="color:#555; font-size:15px; margin:0;">التاريخ: <strong id="inv-date"
+                            style="color:#000;"></strong></p>
+                </div>
+            </div>
+
+            <div
+                style="margin-bottom:40px; background:#fff8f3; padding:20px; border-right:4px solid #ff6a00; border-radius:8px;">
+                <h3 style="font-size:16px; color:#ff6a00; margin:0 0 10px 0; font-weight:700;">تفاصيل المشترك:</h3>
+                <div style="display:flex; gap:40px;">
+                    <p style="font-size:18px; margin:0; color:#222;">الاسم: <strong id="inv-player-name"></strong></p>
+                    <p style="font-size:18px; margin:0; color:#222;">رقم الهوية بالنادي: <strong
+                            id="inv-player-cid"></strong></p>
+                </div>
+            </div>
+
+            <table
+                style="width:100%; text-align:right; border-collapse:separate; border-spacing:0; margin-bottom:40px; border-radius:12px; overflow:hidden; border:1px solid #eaeaea;">
+                <thead>
+                    <tr style="background:#f9f9f9;">
+                        <th
+                            style="padding:18px; color:#555; font-size:15px; border-bottom:2px solid #eaeaea; text-align:right;">
+                            البيان (نوع الاشتراك)</th>
+                        <th
+                            style="padding:18px; color:#555; font-size:15px; border-bottom:2px solid #eaeaea; text-align:center; white-space:nowrap;">
+                            تاريخ البدء</th>
+                        <th
+                            style="padding:18px; color:#555; font-size:15px; border-bottom:2px solid #eaeaea; text-align:center; white-space:nowrap;">
+                            تاريخ الانتهاء</th>
+                        <th
+                            style="padding:18px; color:#555; font-size:15px; border-bottom:2px solid #eaeaea; text-align:left; white-space:nowrap;">
+                            المبلغ المستحق</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:16px 18px; border-bottom:1px solid #eaeaea; font-size:18px; font-weight:600; color:#111;"
+                            id="inv-sub-name"></td>
+                        <td style="padding:16px 18px; border-bottom:1px solid #eaeaea; font-size:16px; color:#444; text-align:center; white-space:nowrap;"
+                            id="inv-start"></td>
+                        <td style="padding:16px 18px; border-bottom:1px solid #eaeaea; font-size:16px; color:#444; text-align:center; white-space:nowrap;"
+                            id="inv-end"></td>
+                        <td style="padding:16px 18px; border-bottom:1px solid #eaeaea; font-size:18px; font-weight:bold; color:#111; text-align:left; white-space:nowrap;"
+                            id="inv-price"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <div
+                    style="background:#fff8f3; padding:20px 40px; border-radius:8px; text-align:center; min-width:250px; border:1px solid #ffe5d4; border-right:4px solid #ff6a00; box-shadow: 0 4px 10px rgba(255, 106, 0, 0.05);">
+                    <p style="font-size:16px; margin:0 0 8px 0; color:#555; font-weight:700;">الإجمالي المدفوع المعتمد</p>
+                    <h3 style="font-size:36px; font-weight:900; margin:0; color:#ff6a00;"><span id="inv-total"></span>
+                        <small style="font-size:20px; color:#ff6a00; font-weight:800;"> ₪</small>
+                    </h3>
+                </div>
+            </div>
+
+            <div style="margin-top:80px; text-align:center; color:#777; border-top:1px dashed #ccc; padding-top:30px;">
+                <p style="font-size:18px; font-weight:700; color:#111; margin-bottom:5px;">شكراً لثقتكم بماستر جيم! 🏆
+                </p>
+                <p style="font-size:14px; margin:0;">نتمنى لكم تمريناً موفقاً للوصول إلى أهدافكم</p>
+                <br>
+                <p style="font-size:12px; opacity:0.6; margin:0;">تم إصدار هذه الفاتورة إلكترونياً من النظام الموحد ولا
+                    تحتاج لختم.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Panel Overlay -->
+    <div id="ai-overlay" class="chat-drawer-overlay" onclick="toggleAiPanel()"></div>
+
+    <!-- AI Floating Panel -->
+    <div id="ai-panel" class="chat-drawer" style="width: 420px; max-width: 95vw;">
+        <div class="chat-drawer-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(241, 196, 15, 0.08) 100%); padding: 1.2rem;">
+            <h3 style="margin:0; font-size: 1.1rem; display:flex; align-items:center; gap:0.5rem; color: var(--primary);">
+                <span style="font-size: 1.5rem;">🤖</span>
+                <span>مساعد ماستر جيم الذكي</span>
+            </h3>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="ai-panel-status" class="online" style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(34,197,94,0.14); color: #86efac;">متصل ✓</span>
+                <button class="chat-drawer-close" onclick="toggleAiPanel()">×</button>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; height: calc(100vh - 65px); background: var(--bg-dark);">
+            <!-- Messages List -->
+            <div id="ai-messages" class="messages-list" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth;">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Suggestion Chips -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0.5rem 1rem; background: var(--bg-dark); border-top: 1px solid rgba(255,255,255,0.03);">
+                <button class="pai-chip" style="padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(212, 175, 55, 0.22); background: rgba(212, 175, 55, 0.07); color: var(--primary); font-size: 11px; cursor: pointer; transition: background 0.2s;" onclick="aiQuickSend('هل يمكنك عرض قائمة بجميع الأعضاء النشطين؟')">👥 الأعضاء النشطين</button>
+                <button class="pai-chip" style="padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(212, 175, 55, 0.22); background: rgba(212, 175, 55, 0.07); color: var(--primary); font-size: 11px; cursor: pointer; transition: background 0.2s;" onclick="aiQuickSend('كم إجمالي الدخل والمصروفات للشهر الحالي؟')">💰 إحصائية الدخل</button>
+                <button class="pai-chip" style="padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(212, 175, 55, 0.22); background: rgba(212, 175, 55, 0.07); color: var(--primary); font-size: 11px; cursor: pointer; transition: background 0.2s;" onclick="aiQuickSend('اعمل جدول تمارين لـ كابتن أحمد وزنه 80 كجم وطوله 175 سم وهدفه تنشيف ومقاومة مع إضافة نوتس للملاحظات')">🏋️ عمل جدول تمارين</button>
+            </div>
+
+            <!-- Input bar -->
+            <div style="display: flex; gap: 8px; align-items: flex-end; padding: 0.8rem 1rem 1rem; border-top: 1px solid rgba(255,255,255,0.07); background: var(--bg-surface);">
+                <textarea id="ai-input" rows="1" placeholder="اسألني عن اللاعبين، الاشتراكات، الجداول، أو التمويل..." onkeydown="aiHandleKey(event)" oninput="aiAutoResize(this)" style="flex: 1; min-height: 38px; max-height: 100px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 8px 12px; color: #ececec; font-size: 13px; resize: none; outline: none; font-family: inherit; direction: rtl; transition: border-color 0.2s;"></textarea>
+                <button id="ai-send" onclick="aiSendMessage()" style="width: 38px; height: 38px; border-radius: 50%; background: var(--primary); color: #111; font-size: 16px; border: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background-color 0.2s; font-weight: bold;">↑</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Chat Button (FAB) -->
+    <div id="chat-fab" class="chat-fab" onclick="toggleChatDrawer()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+            </path>
+        </svg>
+        <span id="player-unread-badge" class="chat-fab-badge hidden">0</span>
+    </div>
+
+    <!-- Admin Chat Drawer (Wider for user list) -->
+    <div id="chat-overlay" class="chat-drawer-overlay" onclick="toggleChatDrawer()"></div>
+    <div id="chat-drawer" class="chat-drawer" style="width: 800px; max-width: 95vw;">
+        <div class="chat-drawer-header">
+            <h3 style="margin:0; font-size: 1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size: 1.5rem;">💬</span> مركز الدعم الفني
+            </h3>
+            <button class="chat-drawer-close" onclick="toggleChatDrawer()">×</button>
+        </div>
+        <div class="chat-layout" style="height: calc(100vh - 65px); min-height: 0; padding: 1rem; margin: 0;">
+            <!-- Right Panel: Users List -->
+            <div class="card list-group"
+                style="padding: 0; background: var(--bg-surface-light); display:flex; flex-direction:column;">
+                <div style="padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <input type="text" id="admin-chat-search" placeholder="بحث عن شخص..." class="form-control"
+                        style="background: rgba(0,0,0,0.2); border-radius: 8px;">
+                </div>
+                <div id="admin-chat-users" style="flex:1; overflow-y:auto; padding:0;">
+                    <!-- User list populated here -->
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <!-- Left Panel: Chat Screen -->
+            <div class="card chat-widget" style="flex: 1; padding: 0; display:flex; flex-direction:column;">
+                <div class="chat-header"
+                    style="background: transparent; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <h3 id="current-chat-name" class="text-primary" style="margin:0;">حدد لاعباً للبدء بالمراسلة</h3>
+                </div>
+                <div class="chat-container">
+                    <div id="admin-chat-messages" class="messages-list scroll-hide">
+                        <!-- Messages load here -->
+                    </div>
+                    <form id="admin-chat-form"
+                        style="display:none; padding: 1rem; background: var(--bg-surface); border-top: 1px solid var(--border); display: flex; gap: 0.8rem; align-items: center;">
+                        <input type="hidden" id="current-chat-player-id">
+                        <input type="text" id="admin-chat-input" placeholder="اكتب رسالتك..." required
+                            style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 0.8rem 1.2rem; color: white; outline: none; transition: 0.3s;"
+                            onfocus="this.style.borderColor='var(--primary)'"
+                            onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <button type="submit" class="btn btn-primary"
+                            style="border-radius: 50%; width: 45px; height: 45px; padding: 0; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="transform: rotate(180deg) translateX(2px);">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Notification Modal -->
+    <div id="send-notification-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2 class="mb-2">📢 إرسال إشعار للمشتركين</h2>
+            <form id="send-notification-form">
+                <div class="input-group">
+                    <label class="form-label">تحديد المستلم</label>
+                    <select id="notif-target-player" class="form-control">
+                        <option value="all">🔔 لجميع المشتركين (إشعار عام)</option>
+                    </select>
+                </div>
+                <div class="input-group mt-1">
+                    <label class="form-label">عنوان الإشعار</label>
+                    <input type="text" id="notif-title" placeholder="أدخل العنوان..." class="form-control" required
+                        maxlength="100">
+                </div>
+                <div class="input-group mt-1">
+                    <label class="form-label">التفاصيل</label>
+                    <textarea id="notif-content" class="form-control" rows="4" placeholder="رسالتك..."
+                        required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeSendNotificationModal()">إلغاء</button>
+                    <button type="submit" id="notif-submit-btn" class="btn btn-primary">إرسال 📨</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    <script>
+        // Global Password Visibility Toggle
+        window.togglePasswordVisibility = function (inputId, iconElement) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconElement.style.opacity = '1';
+                iconElement.textContent = '👁️‍🗨️';
+            } else {
+                input.type = 'password';
+                iconElement.style.opacity = '0.7';
+                iconElement.textContent = '👁️';
+            }
+        }
+    </script>
+
+    <!-- ========== Premium AI Assistant Widget ========== -->
+    <script>
+        const AI_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000' : 'https://master-gym.onrender.com';
+
+        let aiPanelOpen = false;
+        let aiHistory = [];
+        let aiSending = false;
+        const aiAdminId = localStorage.getItem('admin_id');
+
+        function toggleAiPanel() {
+            aiPanelOpen = !aiPanelOpen;
+            const panel = document.getElementById('ai-panel');
+            const overlay = document.getElementById('ai-overlay');
+            if (panel) panel.classList.toggle('active', aiPanelOpen);
+            if (overlay) overlay.classList.toggle('active', aiPanelOpen);
+            
+            if (aiPanelOpen && aiHistory.length === 0) {
+                aiCheckHealth();
+                const welcomeMsg = 'مرحباً بك أيها الكوتش! 👋\n\nأنا مساعدك الذكي لنادي ماستر جيم. يمكنني مساعدتك في:\n• عرض إحصاءات النادي والاشتراكات\n• متابعة أوزان اللاعبين وتطورهم\n• الإجابة على أي استفسار عن الأعضاء\n\nبماذا يمكنني خدمتك اليوم؟';
+                aiAddMessage('bot', welcomeMsg);
+                aiHistory.push({ role: 'assistant', content: welcomeMsg });
+            }
+        }
+
+        function aiCheckHealth() {
+            const statusEl = document.getElementById('ai-panel-status');
+            fetch(AI_BASE + '/health')
+                .then(r => r.json())
+                .then(d => {
+                    const ok = d.ready ?? d.hasApiKey;
+                    statusEl.textContent = ok ? 'متصل ✓' : 'غير جاهز';
+                    statusEl.style.background = ok ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)';
+                    statusEl.style.color = ok ? '#86efac' : '#fca5a5';
+                })
+                .catch(() => { 
+                    statusEl.textContent = 'غير متصل'; 
+                    statusEl.style.background = 'rgba(239,68,68,0.14)'; 
+                    statusEl.style.color = '#fca5a5'; 
+                });
+        }
+
+        function aiAddMessage(role, text, isTyping = false) {
+            const box = document.getElementById('ai-messages');
+            const row = document.createElement('div');
+            row.className = `ai-msg-row ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `ai-avatar ${role}`;
+            avatar.textContent = role === 'bot' ? 'M' : '👤';
+
+            const bubble = document.createElement('div');
+            bubble.className = `ai-bubble ${role}`;
+
+            if (isTyping) {
+                bubble.innerHTML = '<div class="ai-typing-dots"><span></span><span></span><span></span></div>';
+                row.id = 'ai-typing-row';
+            } else {
+                bubble.innerHTML = aiFormatText(text);
+            }
+
+            row.appendChild(avatar);
+            row.appendChild(bubble);
+            box.appendChild(row);
+            box.scrollTop = box.scrollHeight;
+            return row;
+        }
+
+        function aiFormatText(text) {
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        async function aiSendMessage() {
+            const input = document.getElementById('ai-input');
+            const text = input.value.trim();
+            if (!text || aiSending) return;
+
+            input.value = '';
+            aiAutoResize(input);
+            aiAddMessage('user', text);
+            aiHistory.push({ role: 'user', content: text });
+
+            document.getElementById('ai-send').disabled = true;
+            aiSending = true;
+            const typingRow = aiAddMessage('bot', '', true);
+
+            try {
+                const contents = aiHistory.slice(-16).map(m => ({
+                    role: m.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: m.content }]
+                }));
+
+                const now = new Date();
+                const sysPrompt = `أنت "ماستر جيم AI"، المساعد الذكي الرياضي لنادي ماستر جيم. تحدث بالعربية دائمًا. التاريخ: ${now.toLocaleDateString('ar-JO')} | الوقت: ${now.toLocaleTimeString('ar-JO')}.\nأنت تتحدث مع المدير/الكوتش ولديك صلاحيات كاملة لإدارة النادي. يمكنك استخدام الأدوات المتاحة (Tools) لتفويض الخادم بتنفيذ الإجراءات الإدارية مثل: إنشاء باقات جديدة، تفعيل اشتراكات للاعبين، تسجيل حضور، تعديل نقاط، والموافقة الجماعية أو الفردية على حسابات اللاعبين المعلقة. اختر الأداة المناسبة لتلبية طلب المدير بدقة ثم أكد له إتمام العملية بنجاح باللغة العربية.`;
+
+                const res = await fetch(AI_BASE + '/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        adminId: aiAdminId,
+                        enableSearch: /ابحث|الإنترنت|الانترنت/.test(text),
+                        systemInstruction: { parts: [{ text: sysPrompt }] }
+                    })
+                });
+
+                const data = await res.json();
+                typingRow.remove();
+
+                if (!res.ok) throw new Error(data.error || 'حدث خطأ في الخادم');
+
+                const reply = data.reply || '';
+                aiHistory.push({ role: 'assistant', content: reply });
+                aiAddMessage('bot', reply);
+
+                // If an admin action was executed by the AI, refresh the relevant dashboard components dynamically
+                if (data.actionExecuted) {
+                    if (typeof window.loadAnalyticsDashboard === 'function') window.loadAnalyticsDashboard();
+                    if (typeof window.loadPlayers === 'function') window.loadPlayers();
+                    if (typeof window.loadSubTypes === 'function') window.loadSubTypes();
+                    if (typeof window.loadFreezeRequests === 'function') window.loadFreezeRequests();
+                    if (typeof window.loadRenewals === 'function') window.loadRenewals();
+                    if (typeof window.loadGamificationSettings === 'function') window.loadGamificationSettings();
+                }
+
+            } catch (err) {
+                typingRow.remove();
+                const errRow = aiAddMessage('bot', 'تعذر إكمال الطلب: ' + err.message);
+                errRow.querySelector('.ai-bubble').classList.add('error');
+            } finally {
+                aiSending = false;
+                document.getElementById('ai-send').disabled = false;
+            }
+        }
+
+        function aiQuickSend(text) {
+            document.getElementById('ai-input').value = text;
+            aiSendMessage();
+        }
+
+        function aiHandleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiSendMessage(); }
+        }
+
+        function aiAutoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        }
+    </script>
+    <script>
+        // Sidebar Toggle Logic
+        window.toggleSidebar = function() {
+            const layout = document.querySelector('.app-layout');
+            const isCollapsed = layout.classList.toggle('collapsed');
+            localStorage.setItem('sidebar-collapsed', isCollapsed);
+        };
+
+        // Restore Sidebar State on Page Load
+        document.addEventListener('DOMContentLoaded', () => {
+            const layout = document.querySelector('.app-layout');
+            if (layout && localStorage.getItem('sidebar-collapsed') === 'true') {
+                layout.classList.add('collapsed');
+            }
+        });
+    </script>
+
+    <script src="js/supabase.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>

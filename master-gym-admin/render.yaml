@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: master-gym-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        value: https://dqadrnqntyemxebljaue.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxYWRybnFudHllbXhlYmxqYXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MDUwMzQsImV4cCI6MjA5MDk4MTAzNH0.kGpyMeEp84UwR5DXURdg1xsSnvIxiw8poIJGTPq24aM
+      - key: GEMINI_API_KEY
+        value: AIzaSyA7iqsH925vUUD_RlVP_xSqC0n-bdyzSVU
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash

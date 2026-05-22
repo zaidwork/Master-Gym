@@ -1,0 +1,9 @@
+{
+  "name": "master-gym-root",
+  "version": "1.0.0",
+  "description": "Root helper for Master Gym",
+  "scripts": {
+    "postinstall": "npm install --prefix master-gym-admin",
+    "start": "npm start --prefix master-gym-admin"
+  }
+}

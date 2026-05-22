@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماستر جيم AI - مساعدك الشخصي</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #111111;
+            --bg-strong: #0a0a0a;
+            --panel: rgba(24, 24, 24, 0.96);
+            --panel-soft: rgba(43, 43, 43, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ececec;
+            --muted: #9ca3af;
+            --soft: #d1d5db;
+            --accent: #f97316;
+            --accent-soft: rgba(249, 115, 22, 0.14);
+            --danger: #ef4444;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: "Tajawal", sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 22%),
+                radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 28%),
+                var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            border: none;
+            background: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        #layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            z-index: 15;
+        }
+
+        #sidebar-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #sidebar {
+            width: 280px;
+            height: 100%;
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            border-left: 1px solid var(--border);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            z-index: 20;
+        }
+
+        .sidebar-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .new-chat-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 12px 14px;
+            border-radius: 12px;
+            text-align: right;
+            color: var(--text);
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .new-chat-btn:hover,
+        .cmd-item:hover,
+        .empty-chip:hover,
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .close-sidebar-btn {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            color: var(--soft);
+        }
+
+        .sidebar-brand {
+            padding: 18px 16px;
+            border-radius: 18px;
+            background:
+                linear-gradient(140deg, rgba(249, 115, 22, 0.16), rgba(255, 255, 255, 0.03)),
+                var(--panel-soft);
+            border: 1px solid rgba(249, 115, 22, 0.18);
+            box-shadow: var(--shadow);
+        }
+
+        .brand-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .brand-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(210, 85, 10, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .status-pill {
+            font-size: 12px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--soft);
+        }
+
+        .status-pill.online {
+            background: rgba(249, 115, 22, 0.14);
+            color: #fdba74;
+        }
+
+        .status-pill.offline {
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 24px;
+            margin-bottom: 6px;
+            font-weight: 800;
+        }
+
+        .sidebar-brand p {
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .sidebar-meta {
+            display: grid;
+            gap: 10px;
+        }
+
+        .meta-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .meta-title {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            color: var(--soft);
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 700;
+            padding: 0 6px;
+        }
+
+        .sidebar-cmds {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cmd-item {
+            width: 100%;
+            text-align: right;
+            padding: 12px 12px;
+            border-radius: 12px;
+            color: var(--text);
+            transition: background 0.2s ease;
+        }
+
+        .sidebar-memory {
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toggle-mem-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 6px;
+            color: var(--soft);
+        }
+
+        #memory-content {
+            display: none;
+            min-height: 0;
+            flex: 1;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #memory-content.show {
+            display: flex;
+        }
+
+        #memory-list {
+            min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-left: 4px;
+        }
+
+        #memory-list::-webkit-scrollbar,
+        #chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #memory-list::-webkit-scrollbar-thumb,
+        #chat-box::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+        }
+
+        .memory-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: var(--soft);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .memory-item span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .del-mem {
+            color: #fca5a5;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .empty-mem {
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            padding: 24px 12px;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+        }
+
+        .add-mem-area {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-mem-area input {
+            flex: 1;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 10px 12px;
+            outline: none;
+        }
+
+        .add-mem-area input:focus,
+        #user-input:focus {
+            border-color: rgba(249, 115, 22, 0.5);
+        }
+
+        .add-mem-area button {
+            width: 42px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            background: var(--text);
+            color: #171717;
+            font-weight: 800;
+        }
+
+        #main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .mobile-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(33, 33, 33, 0.92);
+            backdrop-filter: blur(12px);
+        }
+
+        .mobile-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .toggle-sidebar {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 0 10px;
+            scroll-behavior: smooth;
+        }
+
+        .msg-wrap {
+            width: 100%;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 18px 24px;
+            display: flex;
+            gap: 16px;
+            animation: fade-up 0.25s ease;
+        }
+
+        .msg-wrap.user {
+            flex-direction: row-reverse;
+        }
+
+        .msg-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .msg-avatar.user {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--soft);
+        }
+
+        .msg-avatar.ai {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(210, 85, 10, 0.85));
+            color: #ffffff;
+        }
+
+        .message {
+            min-width: 0;
+            font-size: 15px;
+            line-height: 1.85;
+            overflow-wrap: anywhere;
+        }
+
+        .user-msg {
+            max-width: min(76%, 680px);
+            background: linear-gradient(160deg, rgba(55, 55, 55, 0.95), rgba(42, 42, 42, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 22px 22px 8px 22px;
+            color: var(--text);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+        }
+
+        .bot-msg {
+            flex: 1;
+            color: var(--text);
+            padding-top: 2px;
+        }
+
+        .bot-msg.error {
+            color: #fecaca;
+        }
+
+        .bot-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: rgba(159, 243, 221, 0.9);
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.16);
+            padding: 5px 10px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--muted);
+            padding: 6px 10px;
+            border-radius: 10px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sources-box {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .sources-title {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(249, 115, 22, 0.08);
+            border: 1px solid rgba(249, 115, 22, 0.14);
+            color: #b7fff0;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .source-link:hover {
+            background: rgba(249, 115, 22, 0.14);
+        }
+
+        .code-block {
+            direction: ltr;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.26);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 14px;
+            overflow-x: auto;
+            margin: 8px 0;
+            white-space: pre-wrap;
+        }
+
+        .inline-code {
+            direction: ltr;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 2px 6px;
+            font-size: 13px;
+        }
+
+        #input-container {
+            width: 100%;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 12px 20px 20px;
+            background: linear-gradient(180deg, transparent, rgba(33, 33, 33, 0.92) 22%);
+        }
+
+        .input-box {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            background: rgba(47, 47, 47, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 28px;
+            padding: 10px 12px 10px 16px;
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.25);
+        }
+
+        #user-input {
+            flex: 1;
+            min-height: 26px;
+            max-height: 180px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text);
+            resize: none;
+            outline: none;
+            line-height: 1.7;
+            padding: 6px 8px;
+        }
+
+        #user-input::placeholder {
+            color: var(--muted);
+        }
+
+        #send-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--text);
+            color: #171717;
+            font-size: 18px;
+            font-weight: 800;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        #send-btn:hover {
+            transform: scale(1.04);
+        }
+
+        #send-btn:disabled {
+            opacity: 0.55;
+            cursor: wait;
+        }
+
+        .footer-text {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 11px;
+            color: #777;
+        }
+
+        #empty-state {
+            display: none;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            padding: 26px 20px 8px;
+        }
+
+        .empty-shell {
+            width: 100%;
+            max-width: 760px;
+            text-align: center;
+        }
+
+        .empty-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(249, 115, 22, 0.12);
+            color: #fdba74;
+            border: 1px solid rgba(249, 115, 22, 0.18);
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+
+        .empty-shell h3 {
+            font-size: clamp(30px, 5vw, 44px);
+            margin-bottom: 14px;
+            font-weight: 800;
+        }
+
+        .empty-shell p {
+            max-width: 620px;
+            margin: 0 auto 28px;
+            color: var(--muted);
+            line-height: 1.9;
+            font-size: 16px;
+        }
+
+        .empty-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .empty-chip {
+            padding: 13px 18px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .empty-chip:hover {
+            transform: translateY(-1px);
+        }
+
+        #main.is-empty #chat-box {
+            display: none;
+        }
+
+        #main.is-empty #empty-state {
+            display: flex;
+        }
+
+        #main.is-empty #input-container {
+            max-width: 760px;
+            padding-top: 0;
+            background: transparent;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 0;
+        }
+
+        .typing-dots span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            animation: bounce 1s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-6px);
+            }
+        }
+
+        @keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 900px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                right: 0;
+                transform: translateX(100%);
+                box-shadow: -10px 0 40px rgba(0, 0, 0, 0.35);
+            }
+
+            #sidebar.open {
+                transform: translateX(0);
+            }
+
+            .close-sidebar-btn,
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #main {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .msg-wrap {
+                padding: 16px 14px;
+                gap: 10px;
+            }
+
+            .msg-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
+            }
+
+            .user-msg {
+                max-width: 88%;
+            }
+
+            .empty-shell p {
+                font-size: 15px;
+            }
+
+            #input-container {
+                padding: 12px 12px 16px;
+            }
+        }
+
+        /* Auth Styles */
+        .auth-overlay {
+            position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .auth-box {
+            background: var(--panel); padding: 30px; border-radius: 12px; border: 1px solid var(--border);
+            width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; text-align: center;
+        }
+        .auth-input {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text); outline: none; margin-bottom: 10px;
+        }
+        .auth-input:focus { border-color: var(--accent); }
+        .auth-btn {
+            background: var(--accent); color: white; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 10px;
+        }
+        .auth-btn:hover { background: #0e906f; }
+        .auth-switch { color: var(--accent); cursor: pointer; font-size: 14px; margin-top: 10px; }
+        .auth-switch:hover { text-decoration: underline; }
+        .auth-error { color: var(--danger); font-size: 14px; display: none; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div id="auth-overlay" class="auth-overlay" style="display: none;">
+        <div class="auth-box">
+            <h2 id="auth-title" style="margin-bottom: 15px;">تسجيل الدخول - نادي الكرك</h2>
+            <div id="auth-error" class="auth-error"></div>
+            
+            <input type="text" id="auth-phone" class="auth-input" placeholder="رقم الهاتف (مثال: 0791234567)" dir="ltr" />
+            <input type="password" id="auth-password" class="auth-input" placeholder="كلمة المرور" dir="ltr" />
+            
+            <div id="auth-register-fields" style="display: none;">
+                <input type="text" id="auth-fullname" class="auth-input" placeholder="الاسم الكامل" />
+            </div>
+
+            <button id="auth-submit-btn" class="auth-btn" onclick="handleAuthSubmit()">دخول</button>
+            <div class="auth-switch" onclick="toggleAuthMode()" id="auth-switch-text">ليس لديك حساب؟ سجل كلاعب جديد</div>
+        </div>
+    </div>
+
+    <div id="layout">
+        <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="clearChat()">+ محادثة جديدة</button>
+                <button class="close-sidebar-btn" onclick="toggleSidebar(false)">✕</button>
+            </div>
+
+            <section class="sidebar-brand">
+                <div class="brand-top">
+                    <div class="brand-badge">M</div>
+                    <div id="server-status" class="status-pill">جاري الفحص...</div>
+                </div>
+                <h1>ماستر جيم AI</h1>
+                <p>المساعد الرياضي الذكي للنادي، يجيب عن أسئلتك ويتابع تطورك بناءً على سجلات النادي واشتراكك.</p>
+            </section>
+
+            <section class="sidebar-meta">
+                <div class="meta-card">
+                    <div class="meta-title">اللاعب</div>
+                    <div id="player-name-display" class="meta-value">جاري التحميل...</div>
+                </div>
+                <div class="meta-card">
+                    <div class="meta-title">النقاط</div>
+                    <div id="player-points-display" class="meta-value">0</div>
+                </div>
+                <button class="cmd-item" onclick="logout()" style="color: var(--danger); text-align: right; padding: 10px 0; border-top: 1px solid var(--border); margin-top: 10px; display: block; width: 100%;">🔙 العودة للوحة التحكم</button>
+            </section>
+
+            <section class="sidebar-cmds">
+                <p class="section-title">أوامر سريعة</p>
+                <button class="cmd-item" onclick="quickCmd('متى ينتهي اشتراكي؟')">📅 حالة اشتراكي</button>
+                <button class="cmd-item" onclick="quickCmd('ما هي خطتي التدريبية لهذا اليوم؟')">🏋️ تمرينة اليوم</button>
+                <button class="cmd-item" onclick="quickCmd('كم نقاطي الحالية وكيف أزيدها؟')">⭐ نقاطي ومكافآتي</button>
+                <button class="cmd-item" onclick="quickCmd('ابحث في الإنترنت عن فوائد تمرين الديدليفت')">🌐 بحث بالإنترنت</button>
+                <button class="cmd-item" onclick="quickCmd('أعطني نظام غذائي مقترح للضخامة')">🥩 نظام غذائي للضخامة</button>
+                <button class="cmd-item" onclick="quickCmd('أعطني نصائح لتخفيف الوزن')">🏃 نصائح للتنشيف</button>
+            </section>
+
+            <section class="sidebar-memory">
+                <button class="toggle-mem-btn" onclick="toggleMemoryList()">
+                    <span>الذاكرة المحلية (يتذكر <span id="mem-count">0</span>)</span>
+                    <span id="mem-arrow">▼</span>
+                </button>
+
+                <div id="memory-content">
+                    <div id="memory-list"></div>
+
+                    <div class="add-mem-area">
+                        <input type="text" id="new-mem-input" placeholder="أضف معلومة..." onkeydown="handleMemoryKey(event)">
+                        <button onclick="addMemory()">+</button>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <main id="main" class="is-empty">
+            <header class="mobile-header">
+                <button class="toggle-sidebar" onclick="toggleSidebar(true)">☰</button>
+                <h2>ماستر جيم AI</h2>
+                <div id="mobile-status" class="status-pill">...</div>
+            </header>
+
+            <section id="empty-state">
+                <div class="empty-shell">
+                    <div class="empty-badge">مساعدك الرياضي المخصص من ماستر جيم</div>
+                    <h3>جاهز لتحطيم أرقامك اليوم؟</h3>
+                    <p>يمكنك سؤالي عن تفاصيل اشتراكك، برنامجك التدريبي، قياساتك السابقة، أو حتى طلب نصائح رياضية وغذائية.</p>
+
+                    <div class="empty-chips">
+                        <button class="empty-chip" onclick="quickCmd('متى ينتهي اشتراكي الحالي؟')">تاريخ اشتراكي</button>
+                        <button class="empty-chip" onclick="quickCmd('ما هو برنامجي التدريبي اليوم؟')">تمرينة اليوم</button>
+                        <button class="empty-chip" onclick="quickCmd('ما هي آخر قياسات لوزني؟')">تطوري البدني</button>
+                        <button class="empty-chip" onclick="quickCmd('أعطني نصيحة لزيادة الكتلة العضلية')">نصيحة رياضية</button>
+                        <button class="empty-chip" onclick="quickCmd('ابحث في الإنترنت عن أفضل مصادر البروتين')">مصادر البروتين</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="chat-box"></section>
+
+            <section id="input-container">
+                <div class="input-box">
+                    <textarea id="user-input" rows="1" placeholder="اسأل عن أي شيء..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+                    <button id="send-btn" onclick="sendMessage()">↑</button>
+                </div>
+                <p class="footer-text">قد يخطئ ماستر جيم AI أحيانًا، لذلك تحقّق من المعلومات الحساسة أو المهمة.</p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // إعداد الرابط الأساسي للسيرفر (تم ربطه بسيرفر Render بنجاح)
+        const BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+            ? "http://localhost:3000" 
+            : "https://master-gym.onrender.com";
+
+        const API_URL = `${BASE_URL}/api/chat`;
+        const STORAGE_CHAT = "zaid_ai_chat_v2";
+        const STORAGE_MEM = "zaid_ai_memory_v2";
+        const CORE_MEMORY = [];
+        // ملاحظة: الذاكرة المحلية فارغة عمداً. 
+        // هوية اللاعب وبياناته تأتي من قاعدة البيانات عبر الخادم.
+        const DEFAULT_MEMORY = [];
+
+        const chatBox = document.getElementById("chat-box");
+        const userInput = document.getElementById("user-input");
+        const sendBtn = document.getElementById("send-btn");
+        const main = document.getElementById("main");
+        const sidebar = document.getElementById("sidebar");
+        const sidebarOverlay = document.getElementById("sidebar-overlay");
+        const memContent = document.getElementById("memory-content");
+        const serverStatus = document.getElementById("server-status");
+        const mobileStatus = document.getElementById("mobile-status");
+        const modelName = document.getElementById("model-name");
+
+        let memory = readStorage(STORAGE_MEM, DEFAULT_MEMORY);
+        let chatHistory = readStorage(STORAGE_CHAT, []);
+        let isSending = false;
+        let retryAt = 0;
+        
+        // ملف المدير: يقرأ admin_id فقط ويتجاهل player_id دائماً
+        let loggedInPlayerId = null; // مدير وليس لاعب
+        let loggedInAdminId = localStorage.getItem("admin_id");
+        let isLoginMode = true;
+
+        function checkAuth() {
+            if (loggedInAdminId) {
+                document.getElementById("auth-overlay").style.display = "none";
+                document.getElementById("player-name-display").textContent = "المدير (Admin)";
+                document.getElementById("player-points-display").textContent = "∞";
+                return;
+            }
+            if (!loggedInPlayerId) {
+                document.getElementById("auth-overlay").style.display = "flex";
+                document.getElementById("player-name-display").textContent = "غير مسجل";
+                document.getElementById("player-points-display").textContent = "0";
+            } else {
+                document.getElementById("auth-overlay").style.display = "none";
+                document.getElementById("player-name-display").textContent = localStorage.getItem("gym_player_name") || "لاعب";
+                document.getElementById("player-points-display").textContent = localStorage.getItem("gym_player_points") || "0";
+            }
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById("auth-title").textContent = isLoginMode ? "تسجيل الدخول - نادي الكرك" : "حساب جديد - نادي الكرك";
+            document.getElementById("auth-register-fields").style.display = isLoginMode ? "none" : "block";
+            document.getElementById("auth-submit-btn").textContent = isLoginMode ? "دخول" : "تسجيل";
+            document.getElementById("auth-switch-text").textContent = isLoginMode ? "ليس لديك حساب؟ سجل كلاعب جديد" : "لديك حساب؟ قم بتسجيل الدخول";
+            document.getElementById("auth-error").style.display = "none";
+        }
+
+        async function handleAuthSubmit() {
+            const phone = document.getElementById("auth-phone").value.trim();
+            const password = document.getElementById("auth-password").value.trim();
+            const fullName = document.getElementById("auth-fullname").value.trim();
+            const errorDiv = document.getElementById("auth-error");
+
+            if (!phone || !password || (!isLoginMode && !fullName)) {
+                errorDiv.textContent = "الرجاء تعبئة جميع الحقول المطلوبة.";
+                errorDiv.style.display = "block";
+                return;
+            }
+
+            const endpoint = isLoginMode ? "/api/login" : "/api/register";
+            const payload = isLoginMode ? { phone_number: phone, password } : { phone_number: phone, password, full_name: fullName };
+
+            try {
+                document.getElementById("auth-submit-btn").disabled = true;
+                const res = await fetch(BASE_URL + endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || "حدث خطأ غير معروف.");
+                }
+
+                localStorage.setItem("gym_player_id", data.player.id);
+                localStorage.setItem("gym_player_name", data.player.full_name);
+                localStorage.setItem("gym_player_points", data.player.points || 0);
+                loggedInPlayerId = data.player.id;
+                
+                checkAuth();
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = "block";
+            } finally {
+                document.getElementById("auth-submit-btn").disabled = false;
+            }
+        }
+
+        function logout() {
+            if (loggedInAdminId) {
+                window.location.href = "admin.html";
+                return;
+            }
+            localStorage.removeItem("gym_player_id");
+            localStorage.removeItem("gym_player_name");
+            localStorage.removeItem("gym_player_points");
+            loggedInPlayerId = null;
+            chatHistory = [];
+            saveChat();
+            renderChat();
+            checkAuth();
+            window.location.href = "index.html";
+        }
+
+        function readStorage(key, fallback) {
+            try {
+                const value = JSON.parse(localStorage.getItem(key));
+                return Array.isArray(value) ? value : fallback.slice();
+            } catch (error) {
+                return fallback.slice();
+            }
+        }
+
+        function init() {
+            if (window !== window.top) {
+                const logoutBtn = document.querySelector('.cmd-item[onclick="logout()"]');
+                if (logoutBtn) logoutBtn.style.display = 'none';
+            }
+            checkAuth();
+            updateMemCount();
+            renderMemoryList();
+            restoreChat();
+            autoResize(userInput);
+            fetchHealth();
+        }
+
+        function fetchHealth() {
+            fetch(BASE_URL + "/health")
+                .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok) {
+                        throw new Error(data?.error || "تعذر فحص الخادم");
+                    }
+
+                    const model = data?.model || "غير معروف";
+                    const isOnline = Boolean(data?.ready ?? data?.hasApiKey);
+
+                    if (modelName) modelName.textContent = model;
+                    setStatus(
+                        isOnline ? "Gemini متصل وجاهز" : "Gemini غير جاهز أو المفتاح غير مضبوط",
+                        isOnline ? "online" : "offline"
+                    );
+                })
+                .catch(() => {
+                    if (modelName) modelName.textContent = "غير متاح";
+                    setStatus("الخادم غير متصل", "offline");
+                });
+        }
+
+        function setStatus(text, state) {
+            [serverStatus, mobileStatus].forEach((element) => {
+                element.textContent = text;
+                element.className = `status-pill ${state}`;
+            });
+        }
+
+        async function restoreChat() {
+            chatBox.innerHTML = "";
+            
+            if (loggedInPlayerId) {
+                try {
+                    const res = await fetch(`${BASE_URL}/api/chat/history?playerId=${loggedInPlayerId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.history && data.history.length > 0) {
+                            chatHistory = data.history;
+                            saveChat();
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load chat history from DB", e);
+                }
+            }
+
+            if (!chatHistory.length) {
+                updateEmptyState();
+                return;
+            }
+
+            chatHistory.forEach((message) => {
+                renderMessage(
+                    message.content,
+                    message.role,
+                    false,
+                    message.meta,
+                    false,
+                    Array.isArray(message.sources) ? message.sources : []
+                );
+            });
+
+            updateEmptyState();
+            scrollChatToBottom();
+        }
+
+        function updateEmptyState() {
+            main.classList.toggle("is-empty", chatHistory.length === 0);
+        }
+
+        function scrollChatToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function getRemainingRetrySeconds() {
+            const diff = retryAt - Date.now();
+            return diff > 0 ? Math.ceil(diff / 1000) : 0;
+        }
+
+        function normalizeFact(item) {
+            return String(item || "")
+                .trim()
+                .replace(/\s+/g, " ")
+                .toLowerCase();
+        }
+
+        function getKnownUserFacts() {
+            const merged = [];
+            const seen = new Set();
+
+            for (const item of [...CORE_MEMORY, ...memory]) {
+                const normalized = normalizeFact(item);
+                if (!normalized || seen.has(normalized)) {
+                    continue;
+                }
+
+                seen.add(normalized);
+                merged.push(String(item).trim());
+            }
+
+            return merged;
+        }
+
+        function buildSystemPrompt() {
+            const now = new Date();
+            const dateText = now.toLocaleDateString("ar-SA", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            });
+            const timeText = now.toLocaleTimeString("ar-SA", {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            // هذا ملف المدير — دائماً نستخدم سياق المدير/الكوتش
+            if (loggedInAdminId) {
+                return [
+                    'أنت "ماستر جيم AI"، المساعد الذكي الخاص بالمدير/الكوتش في نادي ماستر جيم.',
+                    `التاريخ: ${dateText} | الوقت: ${timeText}`,
+                    'أنت تتحدث مع المدير/الكوتش. ستصلك من الخادم بيانات كاملة عن جميع اللاعبين، الاشتراكات، الأوزان، والإحصائيات. استخدمها لمساعدة المدير في إدارة النادي.'
+                ].join('\n\n');
+            }
+
+            // بدون تسجيل دخول: استخدم الذاكرة المحلية
+            const knownFacts = getKnownUserFacts();
+            const memoryLines = knownFacts.length
+                ? knownFacts.map((item, index) => `${index + 1}. ${item}`).join("\n")
+                : "لا توجد معلومات محفوظة بعد.";
+
+            return [
+                'أنت "ماستر جيم AI"، مساعد رياضي ذكي لنادي ماستر جيم.',
+                "تحدث بالعربية دائمًا وكن محفزاً وإيجابياً.",
+                `التاريخ: ${dateText}`,
+                `الوقت: ${timeText}`,
+                "معلومات محفوظة محلياً:",
+                memoryLines
+            ].join("\n\n");
+        }
+
+        function toGeminiContents() {
+            return chatHistory.slice(-20).map((message) => ({
+                role: message.role === "assistant" ? "model" : "user",
+                parts: [{ text: message.content }]
+            }));
+        }
+
+        function normalizeCommandText(text) {
+            return text
+                .trim()
+                .replace(/\s+/g, " ")
+                .replace(/[؟!.,:؛]+$/g, "");
+        }
+
+        function shouldUseWebSearch(text) {
+            const normalized = text.toLowerCase();
+            const patterns = [
+                /ابحث/,
+                /الانترنت/,
+                /الإنترنت/,
+                /النت/,
+                /اليوم/,
+                /الان/,
+                /الآن/,
+                /حاليا/,
+                /حاليًا/,
+                /اخر/,
+                /آخر/,
+                /اخبار/,
+                /أخبار/,
+                /جديد/,
+                /news/,
+                /latest/,
+                /current/,
+                /today/,
+                /سعر/,
+                /أسعار/,
+                /اسعار/,
+                /نتيجة/,
+                /نتائج/,
+                /مباراة/,
+                /مباريات/,
+                /الطقس/,
+                /ترند/,
+                /trend/,
+                /موعد/,
+                /من هو الرئيس/,
+                /مين هو الرئيس/
+            ];
+
+            return patterns.some((pattern) => pattern.test(normalized));
+        }
+
+        function normalizeSources(sources) {
+            if (!Array.isArray(sources)) {
+                return [];
+            }
+
+            const result = [];
+            const seen = new Set();
+
+            for (const source of sources) {
+                const url = typeof source?.url === "string" ? source.url.trim() : "";
+                const title = typeof source?.title === "string" ? source.title.trim() : "";
+
+                if (!url || seen.has(url)) {
+                    continue;
+                }
+
+                seen.add(url);
+                result.push({
+                    title: title || url,
+                    url
+                });
+            }
+
+            return result;
+        }
+
+        function maybeHandleLocalCommand(rawText) {
+            const text = normalizeCommandText(rawText);
+
+            if (!text) {
+                return null;
+            }
+
+            const saveMatch = text.match(/^احفظ عني[:：]?\s*(.+)$/);
+            if (saveMatch) {
+                const info = saveMatch[1].trim();
+                if (!info) {
+                    return {
+                        reply: "اكتب المعلومة التي تريد حفظها بعد عبارة: احفظ عني:",
+                        meta: "الذاكرة المحلية"
+                    };
+                }
+
+                memory.push(info);
+                saveMemory();
+                updateMemCount();
+                renderMemoryList();
+
+                return {
+                    reply: `تم حفظ هذه المعلومة محليًا: **${info}**`,
+                    meta: "الذاكرة المحلية"
+                };
+            }
+
+            if (text === "امسح كل ما تعرفه عني" || text === "امسح معلوماتي") {
+                memory = [];
+                saveMemory();
+                updateMemCount();
+                renderMemoryList();
+
+                return {
+                    reply: "تم مسح المعلومات الإضافية المحفوظة محليًا. سأظل أعرف أن اسمك زيد ويمكنك إضافة معلومات جديدة وقتما تريد.",
+                    meta: "الذاكرة المحلية"
+                };
+            }
+
+            if (text === "ما الذي تعرفه عني" || text === "ما تعرفه عني") {
+                const knownFacts = getKnownUserFacts();
+                return {
+                    reply: knownFacts.length
+                        ? `هذه المعلومات المحلية المحفوظة:\n\n${knownFacts.map((item, index) => `${index + 1}. ${item}`).join("\n")}\n\n💡 للحصول على بياناتك الكاملة من قاعدة البيانات، اسأل: "من أنا؟" أو "معلوماتي"`
+                        : "لا توجد معلومات محلية محفوظة. اسأل 'من أنا؟' للحصول على بياناتك من قاعدة البيانات.",
+                    meta: "الذاكرة المحلية"
+                };
+            }
+
+            const deleteMatch = text.match(/^امسح\s+(.+)$/);
+            if (deleteMatch) {
+                const query = deleteMatch[1].trim().toLowerCase();
+                const before = memory.length;
+                memory = memory.filter((item) => !item.toLowerCase().includes(query));
+                const deletedCount = before - memory.length;
+
+                if (deletedCount > 0) {
+                    saveMemory();
+                    updateMemCount();
+                    renderMemoryList();
+                }
+
+                return {
+                    reply: deletedCount
+                        ? `تم حذف ${deletedCount} من العناصر المرتبطة بـ "${deleteMatch[1].trim()}".`
+                        : `لم أجد أي معلومة محفوظة تطابق "${deleteMatch[1].trim()}".`,
+                    meta: "الذاكرة المحلية"
+                };
+            }
+
+            return null;
+        }
+
+        async function sendMessage() {
+            if (isSending) {
+                return;
+            }
+
+            const text = userInput.value.trim();
+            if (!text) {
+                return;
+            }
+
+            const remainingRetrySeconds = getRemainingRetrySeconds();
+            if (remainingRetrySeconds > 0) {
+                renderAssistant(
+                    `تم الوصول مؤقتًا لحد الاستخدام. انتظر حوالي ${remainingRetrySeconds} ثانية ثم أعد المحاولة.`,
+                    "تنبيه الاستخدام",
+                    true
+                );
+                return;
+            }
+
+            const enableSearch = shouldUseWebSearch(text);
+
+            renderMessage(text, "user", true);
+            chatHistory.push({ role: "user", content: text });
+            saveChat();
+            updateEmptyState();
+
+            userInput.value = "";
+            autoResize(userInput);
+
+            const localReply = maybeHandleLocalCommand(text);
+            if (localReply) {
+                renderAssistant(localReply.reply, localReply.meta);
+                chatHistory.push({
+                    role: "assistant",
+                    content: localReply.reply,
+                    meta: localReply.meta,
+                    sources: []
+                });
+                saveChat();
+                updateEmptyState();
+                closeSidebarOnMobile();
+                return;
+            }
+
+            isSending = true;
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            closeSidebarOnMobile();
+
+            const typingElement = showTyping();
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        playerId: null, // ملف المدير: لا نرسل playerId أبداً
+                        adminId: loggedInAdminId || null,
+                        systemInstruction: {
+                            parts: [{ text: buildSystemPrompt() }]
+                        },
+                        contents: toGeminiContents(),
+                        enableSearch,
+                        generationConfig: {
+                            temperature: 0.7
+                        }
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                removeTyping(typingElement);
+
+                if (!response.ok) {
+                    if (Number.isFinite(data?.retryAfterSeconds)) {
+                        retryAt = Date.now() + (data.retryAfterSeconds * 1000);
+                    }
+                    throw new Error(data?.error || `HTTP ${response.status}`);
+                }
+
+                const reply = (data?.reply || "").trim();
+                if (!reply) {
+                    throw new Error("لم يصل رد صالح من الخادم.");
+                }
+
+                const sources = normalizeSources(data?.sources);
+                const meta = data?.searchUsed
+                    ? "مدعوم ببحث الإنترنت"
+                    : "رد من الخادم المحلي";
+
+                renderAssistant(reply, meta, false, sources);
+                chatHistory.push({
+                    role: "assistant",
+                    content: reply,
+                    meta,
+                    sources
+                });
+                saveChat();
+            } catch (error) {
+                renderAssistant(`تعذر إكمال الطلب: ${error.message}`, "خطأ", true);
+            } finally {
+                isSending = false;
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                updateEmptyState();
+            }
+        }
+
+        function renderMessage(text, role, shouldScroll, meta, isError, sources = []) {
+            const wrapper = document.createElement("div");
+            wrapper.className = `msg-wrap ${role === "user" ? "user" : "ai"}`;
+
+            const avatar = document.createElement("div");
+            avatar.className = `msg-avatar ${role === "user" ? "user" : "ai"}`;
+            avatar.textContent = role === "user" ? "أنت" : "AI";
+
+            const content = document.createElement("div");
+            content.className = `message ${role === "user" ? "user-msg" : "bot-msg"}${isError ? " error" : ""}`;
+
+            if (role === "assistant" && meta) {
+                const metaLine = document.createElement("div");
+                metaLine.className = "bot-meta";
+                metaLine.textContent = meta;
+                content.appendChild(metaLine);
+            }
+
+            const body = document.createElement("div");
+            body.innerHTML = formatText(text);
+            content.appendChild(body);
+
+            if (role === "assistant" && sources.length) {
+                appendSources(content, sources);
+            }
+
+            if (role === "assistant" && !isError) {
+                addCopyButton(content, text);
+            }
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(content);
+            chatBox.appendChild(wrapper);
+
+            if (shouldScroll) {
+                scrollChatToBottom();
+            }
+        }
+
+        function renderAssistant(text, meta, isError = false, sources = []) {
+            renderMessage(text, "assistant", true, meta, isError, sources);
+        }
+
+        function addCopyButton(container, textToCopy) {
+            const button = document.createElement("button");
+            button.className = "copy-btn";
+            button.textContent = "نسخ الرد";
+
+            button.addEventListener("click", async () => {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    button.textContent = "تم النسخ";
+                    setTimeout(() => {
+                        button.textContent = "نسخ الرد";
+                    }, 1800);
+                } catch (error) {
+                    button.textContent = "تعذر النسخ";
+                    setTimeout(() => {
+                        button.textContent = "نسخ الرد";
+                    }, 1800);
+                }
+            });
+
+            container.appendChild(button);
+        }
+
+        function appendSources(container, sources) {
+            const box = document.createElement("div");
+            box.className = "sources-box";
+
+            const title = document.createElement("div");
+            title.className = "sources-title";
+            title.textContent = "المصادر";
+            box.appendChild(title);
+
+            const list = document.createElement("div");
+            list.className = "sources-list";
+
+            sources.slice(0, 6).forEach((source, index) => {
+                const link = document.createElement("a");
+                link.className = "source-link";
+                link.href = source.url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = `${index + 1}. ${source.title}`;
+                list.appendChild(link);
+            });
+
+            box.appendChild(list);
+            container.appendChild(box);
+        }
+
+        function showTyping() {
+            const wrapper = document.createElement("div");
+            wrapper.className = "msg-wrap ai";
+            wrapper.id = "typing-indicator";
+
+            const avatar = document.createElement("div");
+            avatar.className = "msg-avatar ai";
+            avatar.textContent = "AI";
+
+            const content = document.createElement("div");
+            content.className = "message bot-msg";
+            content.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(content);
+            chatBox.appendChild(wrapper);
+            scrollChatToBottom();
+
+            return wrapper;
+        }
+
+        function removeTyping(element) {
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function formatText(text) {
+            const codeBlocks = [];
+
+            let html = escapeHtml(text).replace(/```([\s\S]*?)```/g, (_, code) => {
+                const block = `<pre class="code-block"><code>${code.trim()}</code></pre>`;
+                codeBlocks.push(block);
+                return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+            });
+
+            html = html
+                .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\*(.*?)\*/g, "<em>$1</em>")
+                .replace(/\n/g, "<br>");
+
+            html = html.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => codeBlocks[Number(index)] || "");
+
+            return html;
+        }
+
+        function renderMemoryList() {
+            const list = document.getElementById("memory-list");
+            list.innerHTML = "";
+
+            if (!memory.length) {
+                list.innerHTML = '<div class="empty-mem">لا توجد معلومات محفوظة بعد.</div>';
+                return;
+            }
+
+            memory.forEach((item, index) => {
+                const row = document.createElement("div");
+                row.className = "memory-item";
+
+                const text = document.createElement("span");
+                text.textContent = item;
+
+                const removeButton = document.createElement("button");
+                removeButton.className = "del-mem";
+                removeButton.textContent = "✕";
+                removeButton.addEventListener("click", () => deleteMemoryItem(index));
+
+                row.appendChild(text);
+                row.appendChild(removeButton);
+                list.appendChild(row);
+            });
+        }
+
+        function deleteMemoryItem(index) {
+            memory.splice(index, 1);
+            saveMemory();
+            updateMemCount();
+            renderMemoryList();
+        }
+
+        function addMemory() {
+            const input = document.getElementById("new-mem-input");
+            const value = input.value.trim();
+
+            if (!value) {
+                return;
+            }
+
+            memory.push(value);
+            saveMemory();
+            updateMemCount();
+            renderMemoryList();
+            input.value = "";
+        }
+
+        function updateMemCount() {
+            document.getElementById("mem-count").textContent = String(memory.length);
+        }
+
+        function saveChat() {
+            try {
+                localStorage.setItem(STORAGE_CHAT, JSON.stringify(chatHistory.slice(-100)));
+            } catch (error) {
+                console.error("Failed to save chat:", error);
+            }
+        }
+
+        function saveMemory() {
+            try {
+                localStorage.setItem(STORAGE_MEM, JSON.stringify(memory));
+            } catch (error) {
+                console.error("Failed to save memory:", error);
+            }
+        }
+
+        function clearChat() {
+            chatHistory = [];
+            saveChat();
+            chatBox.innerHTML = "";
+            updateEmptyState();
+            closeSidebarOnMobile();
+        }
+
+        function handleKey(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function handleMemoryKey(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addMemory();
+            }
+        }
+
+        function autoResize(element) {
+            element.style.height = "auto";
+            element.style.height = `${Math.min(element.scrollHeight, 180)}px`;
+        }
+
+        function quickCmd(text) {
+            userInput.value = text;
+            autoResize(userInput);
+            userInput.focus();
+            closeSidebarOnMobile();
+        }
+
+        function toggleMemoryList() {
+            memContent.classList.toggle("show");
+            document.getElementById("mem-arrow").textContent = memContent.classList.contains("show") ? "▲" : "▼";
+        }
+
+        function toggleSidebar(forceOpen) {
+            const shouldOpen = typeof forceOpen === "boolean"
+                ? forceOpen
+                : !sidebar.classList.contains("open");
+
+            sidebar.classList.toggle("open", shouldOpen);
+            sidebarOverlay.classList.toggle("show", shouldOpen);
+        }
+
+        function closeSidebarOnMobile() {
+            if (window.innerWidth <= 900) {
+                toggleSidebar(false);
+            }
+        }
+
+        window.addEventListener("resize", () => {
+            if (window.innerWidth > 900) {
+                toggleSidebar(false);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
