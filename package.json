@@ -4,6 +4,10 @@
   "description": "Root helper for Master Gym",
   "scripts": {
     "postinstall": "npm install --prefix master-gym-admin",
-    "start": "npm start --prefix master-gym-admin"
+    "start": "npm start --prefix master-gym-admin",
+    "build:player": "node build-player.js"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.1.0"
   }
 }
