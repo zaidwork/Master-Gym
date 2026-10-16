@@ -86,20 +86,48 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (req.method === "GET") {
-            let filePath = path.join(__dirname, parsedUrl);
+            let parsedPath = parsedUrl;
+            let targetBaseDir = __dirname;
+
+            // 1. check if the path starts with /player/ or is /player
+            if (parsedPath === '/player') {
+                res.writeHead(301, { 'Location': '/player/' });
+                return res.end();
+            }
+            if (parsedPath.startsWith('/player/')) {
+                const relativePath = parsedPath.slice(8); // remove '/player/'
+                targetBaseDir = path.join(__dirname, '..', 'master-gym-player');
+                parsedPath = '/' + relativePath;
+            } 
+            // 2. check if the path starts with /admin/ or is /admin
+            else if (parsedPath === '/admin') {
+                res.writeHead(301, { 'Location': '/admin/' });
+                return res.end();
+            }
+            else if (parsedPath.startsWith('/admin/')) {
+                const relativePath = parsedPath.slice(7); // remove '/admin/'
+                targetBaseDir = __dirname;
+                parsedPath = '/' + relativePath;
+            }
+
+            let filePath = path.join(targetBaseDir, parsedPath);
 
             // توجيه ذكي للمجلدات والملفات
-            if (parsedUrl === '/' || parsedUrl === '/index.html') {
-                filePath = path.join(__dirname, 'index.html');
-            } else if (parsedUrl === '/bot.html') {
-                filePath = path.join(__dirname, 'bot.html');
-            } else if (parsedUrl === '/admin' || parsedUrl === '/admin/' || parsedUrl === '/player' || parsedUrl === '/player/') {
-                res.writeHead(301, { 'Location': '/' });
-                return res.end();
+            if (parsedPath === '/' || parsedPath === '/index.html') {
+                if (targetBaseDir === __dirname && !parsedUrl.startsWith('/admin/')) {
+                    filePath = path.join(__dirname, 'portal.html');
+                } else {
+                    filePath = path.join(targetBaseDir, 'index.html');
+                }
+            } else if (parsedPath === '/bot.html') {
+                filePath = path.join(targetBaseDir, 'bot.html');
             }
             
             // Basic security to prevent directory traversal
-            if (!filePath.startsWith(__dirname)) {
+            const adminDir = __dirname;
+            const playerDir = path.resolve(__dirname, '..', 'master-gym-player');
+            const resolvedPath = path.resolve(filePath);
+            if (!resolvedPath.startsWith(adminDir) && !resolvedPath.startsWith(playerDir)) {
                 res.writeHead(403);
                 return res.end("Forbidden");
             }

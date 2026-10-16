@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماستر جيم - بوابة الخدمات | Master Gym</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #f97316;
+            --primary-hover: #ea580c;
+            --primary-glow: rgba(249, 115, 22, 0.4);
+            --bg-dark: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-glow: rgba(249, 115, 22, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 50%, #151f32 0%, #090d16 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: var(--text-main);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Decorative glowing blur background elements */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary-glow);
+            border-radius: 50%;
+            top: 20%;
+            left: 10%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            background: rgba(30, 64, 175, 0.25);
+            border-radius: 50%;
+            bottom: 20%;
+            right: 10%;
+            filter: blur(140px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        header {
+            width: 100%;
+            padding: 2.5rem 2rem 1rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary-glow);
+            margin-bottom: 0.5rem;
+            animation: pulseDumbbell 3s infinite ease-in-out;
+        }
+
+        .logo-text {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+
+        .logo-text span {
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+
+        main {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 10;
+        }
+
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            width: 100%;
+            max-width: 900px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Glassmorphism Card Design */
+        .portal-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Subtle glowing border on hover */
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 1px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            transition: all 0.4s;
+        }
+
+        .portal-card:hover::before {
+            background: linear-gradient(to bottom, var(--primary), rgba(255,255,255,0.05));
+        }
+
+        .portal-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(249, 115, 22, 0.1);
+            border-color: rgba(249, 115, 22, 0.2);
+        }
+
+        .card-icon-wrapper {
+            width: 90px;
+            height: 90px;
+            border-radius: 20px;
+            background: rgba(249, 115, 22, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            transition: all 0.4s;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        .portal-card:hover .card-icon-wrapper {
+            background: var(--primary);
+            box-shadow: 0 0 25px var(--primary-glow);
+            transform: scale(1.08) rotate(5deg);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            transition: all 0.4s;
+        }
+
+        .portal-card:hover .card-icon {
+            color: #fff;
+        }
+
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        .card-description {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            min-height: 80px;
+        }
+
+        .portal-btn {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .portal-card.admin-card .portal-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+        }
+
+        .portal-card:hover .portal-btn {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 8px 20px var(--primary-glow);
+            border-color: var(--primary);
+        }
+
+        .portal-btn i {
+            transition: transform 0.3s;
+        }
+
+        .portal-card:hover .portal-btn i {
+            transform: translateX(-5px);
+        }
+
+        footer {
+            padding: 2rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: statusPulse 1.5s infinite alternate;
+        }
+
+        .footer-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseDumbbell {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes statusPulse {
+            from {
+                opacity: 0.4;
+                box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+            }
+            to {
+                opacity: 1;
+                box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        /* Responsive Tweaks */
+        @media (max-width: 768px) {
+            header {
+                padding-top: 1.5rem;
+            }
+            .logo-text {
+                font-size: 1.8rem;
+            }
+            .portal-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .portal-card {
+                padding: 2.5rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fa-solid fa-dumbbell"></i>
+            </div>
+            <h1 class="logo-text">ماستر <span>جيم</span></h1>
+            <p class="subtitle">بوابة الخدمات والأنظمة المتكاملة</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="portal-grid">
+            <!-- Members Portal Card -->
+            <div class="portal-card player-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-user-running card-icon"></i>
+                </div>
+                <div>
+                    <h2 class="card-title">بوابة اللاعبين</h2>
+                    <p class="card-description">سجل دخولك لمتابعة تفاصيل اشتراكك، رصيد نقاطك وجوائزك، سجل قياسات وزنك وتطورك البدني، والتزم بجدول التمارين الرياضية المخصص لك ومحادثة الكوتش الذكي.</p>
+                </div>
+                <a href="/player/" class="portal-btn">
+                    <span>دخول بوابة اللاعبين</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+            </div>
+
+            <!-- Admin Control Panel Card -->
+            <div class="portal-card admin-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-shield-halved card-icon"></i>
+                </div>
+                <div>
+                    <h2 class="card-title">لوحة التحكم والإدارة</h2>
+                    <p class="card-description">اللوحة المخصصة لمدير وكباتن النادي لإدارة شؤون المشتركين، مراجعة وتفعيل طلبات التسجيل الجدد، تجديد أو تجميد الاشتراكات، إعداد الخطط التدريبية وتتبع المصروفات.</p>
+                </div>
+                <a href="/admin/" class="portal-btn">
+                    <span>دخول لوحة الإدارة</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>خادم ماستر جيم متصل ونشط 💓</span>
+            </div>
+        </div>
+        <p class="footer-text">© 2026 جميع الحقوق محفوظة لنظام ماستر جيم (Master Gym)</p>
+    </footer>
+
+</body>
+</html>

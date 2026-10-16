@@ -1,5 +1,8 @@
 // js/supabase.js
-const supabaseUrl = 'https://dqadrnqntyemxebljaue.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxYWRybnFudHllbXhlYmxqYXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MDUwMzQsImV4cCI6MjA5MDk4MTAzNH0.kGpyMeEp84UwR5DXURdg1xsSnvIxiw8poIJGTPq24aM';
+// Configure with your Supabase credentials or inject via window variables
+const supabaseUrl = window.ENV_SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
+const supabaseKey = window.ENV_SUPABASE_KEY || 'YOUR_SUPABASE_ANON_KEY';
 
-window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+  window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+}
